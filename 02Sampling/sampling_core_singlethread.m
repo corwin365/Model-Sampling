@@ -208,7 +208,7 @@ else
     Error =2;
     return
   end
-  
+   
   %convert pressure to log-prs, to make life easier
   Model.Prs = log10(Model.Prs);
   
