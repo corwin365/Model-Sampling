@@ -25,8 +25,9 @@ First = min(ObsGrid.Track.Time(:));
 Last  = max(ObsGrid.Track.Time(:));
 
 %and pressure grid
-MaxPrs = max(ObsGrid.Track.Prs(:)).*1.2;
-MinPrs = min(ObsGrid.Track.Prs(:))./1.2;
+MaxPrs = 10.^max(ObsGrid.Track.Prs(:)).*1.2;
+MinPrs = 10.^min(ObsGrid.Track.Prs(:))./1.2;
+
 
 %round 'first' and 'last' time to the nearest 15-min step, rounding away from the sample
 First = floor(First./Step).*Step;
@@ -40,7 +41,7 @@ for Time=First:Step:Last;
   FileName = [CoreVars.CESM_CK.Path, ...
               'wrfout_d01_',sprintf('%04d',y),'-',sprintf('%02d',M),'-',sprintf('%02d',d), ...
                         '_',sprintf('%02d',h),'-',sprintf('%02d',m),'-00.nc'];
-  FileName = 'C:\Data\CESM\wrfout_d01_2010-10-08_13-00-00.nc' %temporary override for local testing                      
+%   FileName = 'C:\Data\CESM\wrfout_d01_2010-10-08_13-00-00.nc' %temporary override for local testing                      
                    
     
   %load file
@@ -49,23 +50,29 @@ for Time=First:Step:Last;
     return
   end
   Data = cjw_readnetCDF(FileName,1);  
+  
+  %convert units, as instructed by CK
+  P = Data.PB + Data.P; P = P .* 0.01;
 
   %make pressure easier to work with
-  Prs = squeeze(nanmean(Data.PB,[1,2]));%average pressure (bad near surface, fine in s'sphere)
+  Prs = squeeze(nanmean(P,[1,2]));%average pressure over horizontal plane (bad near surface, fine in s'sphere)
   
   %drop unwanted pressure levels
   Good = find(Prs <= MaxPrs & Prs >= MinPrs);
   Data.T  = Data.T( :,:,Good);
-  Data.PB = Data.PB(:,:,Good);
+  P       = P(:,:,Good);
   Prs     = Prs(Good);
   
-  %convert theta to T
-  T = single(Data.T) .* (Data.PB./1000.*0.01).^0.2896;
+  %offset described by Chris Kruse
+  Data.T = Data.T + 300;
   
+  %convert theta to T
+  T = single(Data.T)./((1000./P).^0.2896);
+
   %pull out and reformat data
   if Time == First;
     AllData.T    = T;
-    AllData.Prs  = Prs.*0.01; %Pa->hPa
+    AllData.Prs  = Prs;
     AllData.Time = Time;
     AllData.Lat  = Data.XLAT;
     AllData.Lon  = Data.XLONG;
@@ -81,8 +88,8 @@ end; clear Time First Last Step
 
 %we need 1d lat and lon. So, we need to reinterpolate the data to a regular lat/lon grid
 %oversample in both directions, to be safe
-Lat = min(ObsGrid.Track.Lat(:))-1 : 0.5: max(ObsGrid.Track.Lat(:))+1;
-Lon = min(ObsGrid.Track.Lon(:))-1 : 0.5: max(ObsGrid.Track.Lon(:))+1;
+Lat = min(ObsGrid.Track.Lat(:))-1 : 0.05: max(ObsGrid.Track.Lat(:))+1;
+Lon = min(ObsGrid.Track.Lon(:))-1 : 0.05: max(ObsGrid.Track.Lon(:))+1;
 [xi,yi] = meshgrid(Lon,Lat);
 
 %create interpolant object

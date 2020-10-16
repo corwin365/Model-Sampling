@@ -208,9 +208,10 @@ else
     Error =2;
     return
   end
-   
+
   %convert pressure to log-prs, to make life easier
   Model.Prs = log10(Model.Prs);
+  
   
   %finally, drop the lower troposphere - we don't care here, and it takes loads of
   %memory to deal with
