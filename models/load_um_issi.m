@@ -1,6 +1,6 @@
-% % % function Model = load_cesm_ck(ObsGrid)
+function Model = load_cesm_ck(ObsGrid)
 
-ObsGrid = load('C:\Data\corwin\sampling_project\tracks\AIRS_3D\track_airs3d_734419_g195.mat');
+% % % ObsGrid = load('C:\Data\corwin\sampling_project\tracks\AIRS_3D\track_airs3d_734419_g195.mat');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
