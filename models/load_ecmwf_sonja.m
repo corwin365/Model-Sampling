@@ -14,7 +14,7 @@ function Model = load_ecmwf_sonja(DayNumber)
 
 %get core variables - needed for model data path
 CoreVars = sampling_core_variables;
-
+CoreVars.SONJA.Path   = [LocalDataDir,'/gisinger/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day

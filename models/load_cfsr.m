@@ -13,7 +13,7 @@ function Model = load_cfsr(DayNumber)
 
 %get core variables - needed for model data path
 CoreVars = sampling_core_variables;
-
+CoreVars.CFSR.Path   = [LocalDataDir,'/CFSR/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day

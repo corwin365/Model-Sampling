@@ -19,7 +19,7 @@ function Model = load_ecmwf_forecast(DayNumber,ForecastHours,MaxPrs)
 
 %get core variables - needed for model data path
 CoreVars = sampling_core_variables;
-
+CoreVars.EC_FC.Path   = [LocalDataDir,'/ECMWF_fc'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day

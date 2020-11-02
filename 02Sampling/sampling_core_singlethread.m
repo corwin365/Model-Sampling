@@ -85,19 +85,6 @@ if ~isfield(Settings,'HoursAhead');
   Settings.HoursAhead = 0;
 end
 
-
-
-%check this is in the period I have stored for this model
-if DayNumber < CoreVars.(upper(ModelType)).Period(1) ...
- | DayNumber > CoreVars.(upper(ModelType)).Period(2) 
-  Error = 3; 
-  disp(['Local storage of ',upper(ModelType),' does not cover this date']);
-  return;
- end
- 
-
-
-
 %do we have a previously-used set of model interpolants in memory? if not, create an empty checking variable
 if ~exist('OldData'); OldData.ModelID = ''; end
 if ~isfield(OldData,'ModelID'); OldData.ModelID = ''; end

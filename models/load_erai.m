@@ -15,7 +15,8 @@ function Model = load_erai(DayNumber)
 
 %get core variables - needed for model data path
 CoreVars = sampling_core_variables;
-
+CoreVars.ERAi.Path   = [LocalDataDir,'/ERAi/'];
+CoreVars.ERAI.Path   = [LocalDataDir,'/ERAi/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day

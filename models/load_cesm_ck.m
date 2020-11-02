@@ -13,7 +13,7 @@ function Model = load_cesm_ck(ObsGrid)
 
 %get core variables - needed for model data path
 CoreVars = sampling_core_variables;
-
+CoreVars.CESM_CK.Path   = [LocalDataDir,'/CESM/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this input grid
@@ -88,8 +88,16 @@ end; clear Time First Last Step
 
 %we need 1d lat and lon. So, we need to reinterpolate the data to a regular lat/lon grid
 %oversample in both directions, to be safe
-Lat = min(ObsGrid.Track.Lat(:))-1 : 0.05: max(ObsGrid.Track.Lat(:))+1;
-Lon = min(ObsGrid.Track.Lon(:))-1 : 0.05: max(ObsGrid.Track.Lon(:))+1;
+MinLat = max([min(ObsGrid.Track.Lat(:)),min(AllData.Lat(:))]);
+MaxLat = min([max(ObsGrid.Track.Lat(:)),max(AllData.Lat(:))]);
+MinLon = max([min(ObsGrid.Track.Lon(:)),min(AllData.Lon(:))]);
+MaxLon = min([max(ObsGrid.Track.Lon(:)),max(AllData.Lon(:))]);
+
+Lat = MinLat:0.05:MaxLat;
+Lon = MinLon:0.05:MaxLon;
+
+%  %  %  Lat = min(ObsGrid.Track.Lat(:))-1 : 0.08: max(ObsGrid.Track.Lat(:))+1;
+%  %  %  Lon = min(ObsGrid.Track.Lon(:))-1 : 0.08: max(ObsGrid.Track.Lon(:))+1;
 [xi,yi] = meshgrid(Lon,Lat);
 
 %create interpolant object

@@ -15,7 +15,7 @@ function Model = load_ecmwf_opal(DayNumber)
 
 %get core variables - needed for model data path
 CoreVars = sampling_core_variables;
-
+CoreVars.EcOpAl.Path   = [LocalDataDir,'/ECMWF/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day

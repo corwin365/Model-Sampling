@@ -13,7 +13,7 @@ function Model = load_era5(DayNumber,MaxPrs)
 
 %get core variables - needed for model data path
 CoreVars = sampling_core_variables;
-
+CoreVars.ERA5.Path   = [LocalDataDir,'/ERA5/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day

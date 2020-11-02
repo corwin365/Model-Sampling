@@ -13,7 +13,7 @@ function Model = load_merra2(DayNumber)
 
 %get core variables - needed for model data path
 CoreVars = sampling_core_variables;
-
+CoreVars.MERRA2.Path = [LocalDataDir,'/MERRA2/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day

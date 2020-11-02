@@ -14,6 +14,7 @@ function Model = load_jra55c(DayNumber)
 
 %get core variables - needed for model data path
 CoreVars = sampling_core_variables;
+CoreVars.JRA55C.Path = [LocalDataDir,'/JRA55C/'];
 
 %settings
 Settings.DataDir = CoreVars.JRA55C.Path;

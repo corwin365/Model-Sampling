@@ -1,16 +1,27 @@
-
 % nph_ndst.m
-% A 1, 2 and 3-D application of the Stockwell Transform, developed by
+% A 1, 2, 3, and 4-D application of the Stockwell Transform, developed by
 % Neil Hindley, University of Bath, 2017.
 
 % CHANGE LOG ==============================================================
-
+%
+% - Feb 2019 - I've had a few ideas recently for development, including
+% allowing non-integer scales (providing the gaussians are correctly
+% normalised), allowing zero scales, and in particular using an initial FFT
+% to guess the top "N" freqs present in the signal to use as scales, rather
+% than doing the same range of scales. This would be known as "Guided Fourier"
+% mode, and could have a huge speed up - EDIT: this is now implemented!
+%
+% Feb 2019 - Have remove all nested loops for the IFFTs by assembling all
+% the scales first in a big matrix. This should have a small speed up, but
+% more importantly it paves the way for the Guided Fourier mode I want to
+% implement.
+%
 % - August 2018: I did it. I finally did it. Found a way to cope with the
 % amplitude underestimation for higher dimensions. We now take the Hilbert
 % transform of the input N-D image that has been pseudo-bandpassed by all
 % the gaussian windows that we consider (see below) in the ST. As a result,
 % the Hilbert Boosting method has been removed.
-
+%
 % - 2018 Several changes since I last updated, mostly to make it more N-D
 % friendly. First, the hilbert masking step is now fully N-D, we simply
 % list all the complex conjugate pairs and set one to zero double the other
@@ -27,7 +38,7 @@
 % full N-D, it's just really the main loop now that has switch cases. Oh
 % also the decision to make the masking step abitrary was so that it didn't
 % matter what positive/negative scales combinations the user put in. This
-% is much, much more robust now. 
+% is much, much more robust now.
 % EDIT: I've held off on the spillage thing for now. Maybe I'll uncomment
 % it back in at some point.
 
@@ -63,13 +74,18 @@
 % where n is the number of elements in a particular dimension. Defaults are
 % roughly [-(n/3):(n/3)] for each dimension for the 2DST and 3DST, and
 % 1:Nyquist (1:n-1) for the 1DST.
+% If scales is a scalar [X], the dominant [X] scales are found in the input
+% data using the fft, and then only these scales are computed in the NDST.
+% This is not compatible with the 'full' output version. You can also specify
+% min and max wavelengths to be analysed (in real units given by point_spacing).
 %
 % point_spacing - 1xN vector, containing the real physical separation
-% between points, be it time or distance. Must have regular sampling
-% intervals.
+% between points, be it in time or distance. Data input must have this
+% regular sampling for measured wavelengths to be accurate.
 %
 % c - scaling parameter for the Guassian windows. See Hindley et al., AMT
-% (2016) for details on the effect of this.
+% (2016) for details on the effect of this. Would generally recommend
+% setting c=0.25 for all dimensions in my work, but up to you.
 %
 % [OPTIONAL ARGUMENTS]
 %
@@ -116,10 +132,10 @@
 % applied to this to find the phase-invariant amplitude at each location.
 % This is superior because it is the amplitude of only those wavelengths
 % that we have considered in the S-transform.
-% 
+%
 % ST.HR - Real part of the above.
-% 
-% 
+%
+%
 % % % % % % REMOVED:
 % % % % % % ST.BoostFactor - factor by which ST.C has been boosted by the Hilbert
 % % % % % % Boosting method.
@@ -155,6 +171,8 @@ for v = 1:length(varargin)
         inputs{v} = varargin{v};
     end
 end
+
+allownonintegerscales = 1;
 
 % Default SCALES:
 default_scales = cell(1,type);
@@ -205,25 +223,38 @@ switch type
         zeromeanflag = 1;
 end
 
-% Now overwrite these if the user requests it:
-
 % FULL 2-D, 4-D, 6-D etc S-TRANSFORM OBJECT
 % Determine if we want full 2D, 4D, 6D etc output:
 if any(strcmpi(options,'full'))
     fullflag = 1;
     % warning for 3DST:
-    if type == 3
-        if ~isempty(inputs) % if scales are inputted
-            s = inputs{1};
-            w = whos('IN');
-            Mb = (w.bytes ./ 1024 ./ 1024);
-            switch class(IN)
-                case 'double'
-                    Mb = Mb ./ 2;
+    switch type
+        case 3
+            if ~isempty(inputs) % if scales are inputted
+                s = inputs{1};
+                w = whos('IN');
+                Mb = (w.bytes ./ 1024 ./ 1024);
+                switch class(IN)
+                    case 'double'
+                        Mb = Mb ./ 2;
+                end
+                Mb = Mb .* length(s{1})*length(s{2})*length(s{3});
+                warning(['Outputing a full 6-D S-transform object at single precision. This might require up to ' num2str(Mb) ' Mb of memory.'])
             end
-            Mb = Mb .* length(s{1})*length(s{2})*length(s{3});
-            warning(['Outputing a full 6-D S-transform object at single precision. This might require up to ' num2str(Mb) ' Mb of memory.'])
-        end
+        case 4
+            if ~isempty(inputs) % if scales are inputted
+                s = inputs{1};
+                w = whos('IN');
+                Mb = (w.bytes ./ 1024 ./ 1024);
+                switch class(IN)
+                    case 'double'
+                        Mb = Mb ./ 2;
+                end
+                Mb = Mb .* length(s{1})*length(s{2})*length(s{3})*length(s{4});
+                warning(['Outputing a full 8-D S-transform object at single precision. This might require up to ' num2str(Mb) ' Mb of memory.'])
+                warning('If you''re sure, press any key to continue.')
+                pause
+            end
     end
 end
 
@@ -251,13 +282,65 @@ if any(strcmpi(options,'boost'))
 end
 
 
-%% PARSE INPUT SIZES ======================================================
+% GUIDED FOURIER MODE ====================================================
+% new exciting mode, activated by specifying a scalar number for the number
+% of scales to use for higher dimensional S-transforms:
+
+if isnumeric(scales) && type ~= 1 && length(scales) == 1
+    guidedfourierflag = 1;
+    fullflag = 0; % haven't yet sorted out a full spectrum with guided fourier mode
+else
+    guidedfourierflag = 0;
+end
+
+% MIN AND MAX WAVELENGTHS FOR GUIDED FOURIER MODE
+% so guided fourier mode is great and all, but you lose control over what
+% frequencies you want to study. So if you want to only look at the large
+% scale stuff, ignoring small scale, you can't. This is why I've added the
+% ability to specify min amd max WAVELENGTHS for use in guided fourier mode.
+% THESE ARE ABS VALUES, NOT CURRENTLY SUPPORTING NEGATIVES.
+maxwavelengthsflag = 0;
+minwavelengthsflag = 0;
+if any(strcmpi(options,'maxwavelengths'))
+    maxwavelengthsflag = 1;
+    maxwavelengths = abs(varargin{(find(strcmpi(varargin,'maxwavelengths'))+1)});
+end
+if any(strcmpi(options,'minwavelengths'))
+    minwavelengthsflag = 1;
+    minwavelengths = abs(varargin{(find(strcmpi(varargin,'minwavelengths'))+1)});
+end
+
+%% PARSE INPUT SIZES AND SCALES ===========================================
+
+% We need to work out what input scales is. There are three options:
+
+% 1. Scalar value N. Triggers guidedfourier mode. In this mode, only the
+% dominant N feqs in the whole input data will be analysed.
+% If you want to analyse with just one scale, do [X X] of the the same
+% number, like drawing only one contour line in contour.m.
+% 
+% 2. 1xN vector of scales, or a cell object of {1xM,1xN,1xP} etc for N-D
+% inputs. This will do every other scale for each scale in each dimension,
+% so the "full" output would be XxYxMxN for 2-D or XxYxZxMxNxP for 3-D.
+% This is potentially quite slow, but it's a more complete approach as you
+% get "maps" of the spectral properties at each location in X,Y,Z.
+%
+% 3. 1xN, 2xN, 3xN or 4xN vectors of scales. This is like a combination of
+% the above two. What this is is a list of scale combinations for the NDST
+% to analyse. It will only analyse for these exact combinations, as if they
+% were selected by guided fourier mode.
+
 
 switch type
-    case 1
+    case 1 % for 1D, put scales as a cell just for ease of coding later
+        if ~iscell(scales) && guidedfourierflag == 0
+            scales = {scales};
+        end
     otherwise
-        if ~iscell(scales) || length(scales) ~= type
-            error(['Error: Scales must be 1x' num2str(type) ' cell of 1D vectors for each dimension.'])
+        if guidedfourierflag == 0
+            if ~iscell(scales) || length(scales) ~= type
+                error(['Error: Scales must be 1x' num2str(type) ' cell of 1D vectors for each dimension.'])
+            end
         end
         if ~isnumeric(point_spacing) || length(point_spacing) ~= type
             error(['Error: Point spacing must be a 1x' num2str(type) ' vector.'])
@@ -267,16 +350,151 @@ switch type
         end
 end
 
-% for 1D, put scales as a cell just for ease of coding later
-if type == 1 && ~iscell(scales), scales = {scales}; end
-
-%% PARSE FOR NON-INTEGER SCALES ===========================================
-
-for i = 1:length(scales) % integer scales, not equal to zero.
-    sc = scales{i};
-    sc = unique(fix(sc),'stable'); % unique sorts it by default :(
-    scales(i) = {sc(sc ~= 0)};
+if ~guidedfourierflag
+    if ~allownonintegerscales
+        % PARSE SCALES
+        for i = 1:length(scales) % integer scales, not equal to zero.
+            sc = scales{i};
+            sc = unique(fix(sc),'stable'); % unique sorts it by default :(
+            %     sc = unique(sc);
+            scales(i) = {sc(sc ~= 0)};
+        end
+    end
 end
+
+%% GENERATE SCALES FOR GUIDED FOURIER MODE, IF ENABLED ====================
+% alright here's where we use the FFT to find the top XXXX frequencies
+% present in the input data, then work out what their scales would be.
+% Hold my beer...
+
+% nope!
+% % % % % % EDIT: NOW ALLOWING ZERO SCALES!!!! EEEP!!!!!
+
+if guidedfourierflag
+    
+%     if presetscales
+%         
+%     else
+    
+    nfreqs = scales;
+    
+    if zeromeanflag
+        IN = IN - mean(IN(:));
+    end
+    
+    % as below...
+    F = fftn(IN);
+    
+    % sort
+    [a,ib] = sort(abs(imag(F(:))),'descend');
+    
+    % get rid of the zeros before reshaping:
+    ib = ib(a ~= 0); a = a(a ~= 0);
+    
+    % now reshape:
+    % this should always work - after the zeros are taken out there should
+    % always be an even number of complex conjugate pairs remaining.
+    % note: you need the transpose ' here due to the way reshape re-lists things.
+    ar = reshape(a',2,length(a)/2);
+    ibr = reshape(ib',2,length(ib)/2);
+    
+    % Make a coord system in fftshifted space (easier to work in)
+    sz = size(F);
+    v = struct;
+    for n = 1:type
+        
+        switch iseven(sz(n))
+            case 1
+                N = (sz(n)/2)-1;
+                v(n).vec = ifftshift([0 -N:N]);
+            case 0
+                N = (sz(n)-1)/2;
+                v(n).vec = ifftshift(-N:N);
+        end
+        
+    end
+    
+    % what were the scales that related to these locations?
+    ii = struct;
+    switch type
+        case 1
+            ii(1).i = ind2sub(size(F),ibr(1,:));
+        case 2
+            [ii(1).i,ii(2).i] = ind2sub(size(F),ibr(1,:));
+        case 3
+            [ii(1).i,ii(2).i,ii(3).i] = ind2sub(size(F),ibr(1,:));
+        case 4
+            [ii(1).i,ii(2).i,ii(3).i,ii(4).i] = ind2sub(size(F),ibr(1,:));
+    end
+    
+    % RESET SCALES:
+    scales = cell(1,type);
+    wavelengths = cell(1,type);
+    physical_dims = nan(1,type);
+    goodinds = ones(1,length(ii(1).i));
+    
+    % LIMIT TO MIN/MAX SCALES, NON-ZERO SCALES:
+    for n = 1:type
+        
+        scales{n} = v(n).vec(ii(n).i);
+        
+        % remove zero scales:
+        goodinds = all(cat(1,goodinds,scales{n} ~= 0));
+        
+        % covert to wavelengths if needed:
+        physical_dims(n) = point_spacing(n) * sz(n);
+        wavelengths{n} = physical_dims(n) ./ scales{n};
+        
+        % apply MIN wavelength cutoff:
+        if minwavelengthsflag
+            goodinds = all(cat(1,goodinds,abs(wavelengths{n}) >= abs(minwavelengths(n))));
+        end
+        
+        % apply MAX wavelength cutoff:
+        if maxwavelengthsflag
+            goodinds = all(cat(1,goodinds,abs(wavelengths{n}) <= abs(maxwavelengths(n))));
+        end
+        
+    end
+    
+    % Apply this externally to the above loop so that it's the same for all
+    % dimensions:
+    for n = 1:type
+        scales{n} = scales{n}(goodinds);
+        wavelengths{n} = wavelengths{n}(goodinds);
+    end
+    
+    % if the user has asked for more freqs than there are available, limit it:
+    for n = 1:type
+        if nfreqs > length(scales{n})
+            warning(['Too many frequencies requested. Limiting to ' num2str(length(scales{n})) '.'])
+            nfreqs = length(scales{n});
+        end
+    end
+    
+    % Finally, select the top NFREQS from our formatted scales:
+    for n = 1:type
+        scales{n} = scales{n}(1:nfreqs);
+        wavelengths{n} = wavelengths{n}(1:nfreqs);
+    end
+    
+    % Try this: for the collapsed spectrum we care about the order
+    % (slightly) that the frequencies are called. So let's sort them in
+    % order of lowest to highest scales. Not sure if it'll make a
+    % difference but lets's see.
+    scalemag = reshape([scales{1:type}],type,nfreqs);
+    scalemag = sqrt(sum(scalemag.^2,1));
+    [~,ord] = sort(scalemag,'ascend');
+    
+    for n = 1:type
+        scales{n} = scales{n}(ord);
+        wavelengths{n} = wavelengths{n}(ord);
+    end
+    
+%     end % end if presetscales
+    
+end % end if guided fourier mode
+
 
 %% INITIALISE OUTPUTS =====================================================
 
@@ -289,6 +507,9 @@ ST.scales = scales;
 ST.point_spacing = point_spacing;
 ST.c = c;
 ST.AmplitudeBoosting = boostflag;
+
+ST.GuidedFourierMode = guidedfourierflag;
+
 
 if ~isempty(options), ST.Options = options; end
 
@@ -324,7 +545,6 @@ switch type
         ST.F2 = zeros(osz,'single');
         
     case 3
-        
         if fullflag
             ST.ST = zeros([numscales sz],'single');
             ST.C = zeros(osz,'single');
@@ -335,6 +555,19 @@ switch type
         ST.F1 = zeros(osz,'single');
         ST.F2 = zeros(osz,'single');
         ST.F3 = zeros(osz,'single');
+        
+    case 4
+        if fullflag
+            ST.ST = zeros([numscales sz],'single');
+            ST.C = zeros(osz,'single');
+        else
+            ST.C = zeros(osz,'single');
+        end
+        
+        ST.F1 = zeros(osz,'single');
+        ST.F2 = zeros(osz,'single');
+        ST.F3 = zeros(osz,'single');
+        ST.F4 = zeros(osz,'single');
         
 end
 
@@ -347,7 +580,6 @@ end
 
 F = single(fftn(IN));
 
-% dc_comps = imag(F) == 0;
 
 %% STEP 2: GATHER FFT WISDOM ==============================================
 % gather wisdom for the IFFTN() in the loop below...
@@ -362,6 +594,14 @@ FM = F .* nph_mask(F);
 
 %% STEP 4: ASSEMBLE GAUSSIAN WINDOWS ======================================
 % now fully ND compatible, pre-make gaussian vectors into a structure
+% EDIT: this needs updating for guided fourier mode. At the moment we're
+% compiling gaussian for every scale, not every scale combo. This is likely
+% using up several tens of times more run time than necessary.
+
+% nope!
+% % % % % % EDIT: NOW COMPUTING FOR ZERO SCALES if you allow them, just an array of
+% % % % % % zeros with a one at the right place in the centre of where the gaussian
+% % % % % % would be.
 
 GW = struct;
 
@@ -377,8 +617,8 @@ for i = 1:length(scales)
         switch iseven(sz(i))
             case 1
                 N = (sz(i)/2)-1;
-                x = -(N+1):N;
-%                 x = [0 -N:N];
+                %                 x = -(N+1):N;
+                x = [0 -N:N];
             case 0
                 N = (sz(i)-1)/2;
                 x = -N:N;
@@ -387,53 +627,108 @@ for i = 1:length(scales)
         % ifftshift:
         x = ifftshift(x);
         
+        % % % % % %%% TRIED THIS, HATED IT. MAYBE I DID SOMETHING WRONG?
+        % % % % %         % IF SCALE == 0
+        % % % % %         if scales{i}(j) == 0
+        % % % % %
+        % % % % %             % for zero scales:
+        % % % % %             % just a line of zeros with ones at the zeroth freq. In the
+        % % % % %             % other dimensions it'll be a Gaussian, just one element wide
+        % % % % %             % in this dimensions.
+        % % % % %             gwA = zeros(size(x));
+        % % % % %             gwB = zeros(size(x));
+        % % % % %
+        % % % % %             gwA(find(x == 0,1,'first')) = 1;
+        % % % % %             gwB(find(x == 0,1,'last')) = 1;
+        % % % % %
+        % % % % %         else
+        
         % Evaluate Gaussians in the normal way:
         % normal window:
-%         gwA = exp( (-2*pi^2) * (c(i)/scales{i}(j))^2 * ((x.^2) - 2*x*scales{i}(j) + scales{i}(j)^2));
         gwA = exp( (-2*pi^2) * (c(i)/scales{i}(j))^2 * (x - scales{i}(j)).^2 );
         
         % a mirror image window:
-%         gwB = exp( (-2*pi^2) * (c(i)/scales{i}(j))^2 * ((x.^2) + 2*x*scales{i}(j) + scales{i}(j)^2));
         gwB = exp( (-2*pi^2) * (c(i)/scales{i}(j))^2 * (x + scales{i}(j)).^2 );
         
-%         % Remove any spillage into adjacent quadrants:
-%         switch sign(scales{i}(j))
-%             case 1
-%                 gwA(x < 0) = 0;
-%                 gwB(x > 0) = 0;
-%             case -1
-%                 gwA(x > 0) = 0;
-%                 gwB(x < 0) = 0;
-%         end
+        % % % % %     end
+        % % % % %
         
         % and assign:
         GW(i).gvecA(j,:) = gwA;
         GW(i).gvecB(j,:) = gwB;
     end
     
+    % % % % %     disp('bugger!')
+    % % % % %     if any(isnan(GW(i).gvecA(j,:))) || any(isnan(GW(i).gvecB(j,:)))
+    % % % % %
+    % % % % %         %         return
+    % % % % %     end
+    % % % % %
+    
+    
 end
+
+%% ASSEMBLE ALL SCALES INTO A MATRIX ======================================
+% so that you can do one for loop below for all the IFFTNs
+% man this is a ball ache % wait - USE GRIDS!!!!!!!!
+
+% This approach feels like a bit of a sludge, but it enables you to
+% specify individual frequency combinations. Currently, if you specify a
+% scale of 10 for the first dimension, all scales in further dimensions
+% will be tried with the scale 10 for the first dimension, regardless of
+% whether or not they were important, and you couldn't get round this.
+% Changing this will allow for guided fourier mode to be enabled, and
+% should also produce a slight speed up from not using nested loops.
+
+if guidedfourierflag
+    
+    totalnumscales = length(scales{1});
+    allscales = nan(type,totalnumscales);
+    
+    for n = 1:type
+        allscales(n,:) = 1:length(scales{n});
+    end
+    
+    ST.numscales = totalnumscales;
+    
+else
+    
+    totalnumscales = prod(numscales);
+    
+    switch type
+        case 1
+            allscales = 1:numscales; % that was easy
+        case 2
+            [S1,S2] = ndgrid(1:numscales(1),1:numscales(2));
+            allscales = cat(2,S1(:),S2(:))';
+        case 3
+            [S1,S2,S3] = ndgrid(1:numscales(1),1:numscales(2),1:numscales(3));
+            allscales = cat(2,S1(:),S2(:),S3(:))';
+        case 4
+            [S1,S2,S3,S4] = ndgrid(1:numscales(1),1:numscales(2),1:numscales(3),1:numscales(4));
+            allscales = cat(2,S1(:),S2(:),S3(:),S4(:))';
+    end
+end
+
 
 %% MAKE A GAUSSIAN WINDOW STORE to find what freqs we computed:
 gws = zeros(osz);
 
 %% STEP 5: APPLY THE GAUSSIAN WINDOWS AND IFFTN ===========================
-% figure; hold all; figpos([1 0.5])
-% rows = 1; cols = 5;
-% subplot(rows,cols,1);
-% imagesc(ST.IN); ydir; axis tight;
-% subplot(rows,cols,2);
-% imagesc(abs(fftshift(F))); ydir; axis tight;
+% % figure;
 
 switch type
     case 1 % 1DST
-%         for i1 = 1:length(scales{1})
-        for i1 = randperm(length(scales{1}))    
+        for isc = 1:totalnumscales
+            % find indeces for scales for each dimension:
+            i1 = allscales(1,isc);
             % for this gaussian window...
             gwA = GW(1).gvecA(i1,:);
             gwB = GW(1).gvecB(i1,:);
             gw = gwA + gwB;
             % gaussian window storage for hilbert amplitude later:
-            gws = gws + gw;
+            gwloc = gw > gws;
+            gws(gwloc) = gw(gwloc);
             % Always compute the full 2D spectrum, it's not much :)
             FM_voice = ifftn(FM .* gw);
             % insert into S-transform
@@ -444,79 +739,111 @@ switch type
             ST.F1(loc) = ST.freqs(i1);
         end
     case 2 % 2DST
-%         for i1 = 1:length(scales{1})
-%             for i2 = 1:length(scales{2})
-        for i1 = randperm(length(scales{1}))
-            for i2 = randperm(length(scales{2}))        
-                % assemble gaussian window
-                [gw1A,gw2A] = ndgrid(GW(1).gvecA(i1,:),GW(2).gvecA(i2,:));
-                [gw1B,gw2B] = ndgrid(GW(1).gvecB(i1,:),GW(2).gvecB(i2,:));
-                
-                gw = (gw1A .* gw2A) + (gw1B .* gw2B);
-                
-%                 gw(dc_comps) = 1;
-                
-                % gaussian window storage for hilbert amplitude later:
-                gws = gws + gw;
-                
-%                 subplot(rows,cols,3);
-%                 cla; imagesc(fftshift(gw)); ydir;
-%                 clim([0 1]); axis tight;
-%                 ylabel(scales{1}(i1));
-%                 xlabel(scales{2}(i2));
-
-                % apply it
-                FM_voice = ifftn(FM .* gw);
-                
-                if fullflag % full 4D spectrum, if required
-                    ST.ST(i1,i2,:,:) = FM_voice;
-                end
-                % in any case, do the collapsed rapide spectrum
-                loc = abs(FM_voice) > abs(ST.C);
-                ST.C(loc) = FM_voice(loc);
-                ST.F1(loc) = ST.freqs{1}(i1);
-                ST.F2(loc) = ST.freqs{2}(i2);
-                
-%                 subplot(rows,cols,4);
-%                 cla; imagesc(1./ST.F1); ydir;
-%                 clim(minmax(1./ST.freqs{1})); axis tight;
-%                 title('1/F1')
-%                 
-%                 subplot(rows,cols,5);
-%                 cla; imagesc(1./ST.F2); ydir;
-%                 clim(minmax(1./ST.freqs{2})); axis tight;
-%                 title('1/F2')
-%                 
-%                 drawnow;
-                
+        for isc = 1:totalnumscales
+            % find indeces for scales for each dimension:
+            i1 = allscales(1,isc);
+            i2 = allscales(2,isc);
+            % assemble gaussian window
+            [gw1A,gw2A] = ndgrid(GW(1).gvecA(i1,:),GW(2).gvecA(i2,:));
+            [gw1B,gw2B] = ndgrid(GW(1).gvecB(i1,:),GW(2).gvecB(i2,:));
+            gw = (gw1A .* gw2A) + (gw1B .* gw2B);
+            % gaussian window storage for hilbert amplitude later:
+            gwloc = gw > gws;
+            gws(gwloc) = gw(gwloc);
+            
+            % %             pcolor(fftshift(gws)); shat; title(num2str(isc))
+            % %             drawnow;
+            
+            % apply it
+            FM_voice = ifftn(FM .* gw);
+            if fullflag && ~guidedfourierflag % full 4D spectrum, if required
+                ST.ST(i1,i2,:,:) = FM_voice;
             end
+            % in any case, do the collapsed rapide spectrum
+            loc = abs(FM_voice) > abs(ST.C);
+            ST.C(loc) = FM_voice(loc);
+            ST.F1(loc) = ST.freqs{1}(i1);
+            ST.F2(loc) = ST.freqs{2}(i2);
         end
     case 3 % 3DST
-%         for i1 = 1:numscales(1)
-%             for i2 = 1:numscales(2)
-%                 for i3 = 1:numscales(3)
-        for i1 = randperm(length(scales{1}))
-            for i2 = randperm(length(scales{2}))
-                for i3 = randperm(length(scales{3}))
-                    % assemble gaussian window
-                    [gw1A,gw2A,gw3A] = ndgrid(GW(1).gvecA(i1,:),GW(2).gvecA(i2,:),GW(3).gvecA(i3,:));
-                    [gw1B,gw2B,gw3B] = ndgrid(GW(1).gvecB(i1,:),GW(2).gvecB(i2,:),GW(3).gvecB(i3,:));
-                    gw = (gw1A .* gw2A .* gw3A) + (gw1B .* gw2B .* gw3B);
-                    % gaussian window storage for hilbert amplitude later:
-                    gws = gws + gw;
-                    % apply it
-                    FM_voice = ifftn(FM .* gw);
-                    if fullflag % full 6D spectrum, if required
-                        ST.ST(i1,i2,i3,:,:,:) = FM_voice;
-                    end
-                    % in any case, do the collapsed rapide spectrum
-                    loc = abs(FM_voice) > abs(ST.C);
-                    ST.C(loc) = FM_voice(loc);
-                    ST.F1(loc) = ST.freqs{1}(i1);
-                    ST.F2(loc) = ST.freqs{2}(i2);
-                    ST.F3(loc) = ST.freqs{3}(i3);
-                end
+        %         for i3 = 1:numscales(3)
+        %             for i2 = 1:numscales(2)
+        %                 for i1 = 1:numscales(1)
+        %                     % %         for i1 = randperm(length(scales{1}))
+        %                     % %             for i2 = randperm(length(scales{2}))
+        %                     % %                 for i3 = randperm(length(scales{3}))
+        %                     % assemble gaussian window
+        %                     [gw1A,gw2A,gw3A] = ndgrid(GW(1).gvecA(i1,:),GW(2).gvecA(i2,:),GW(3).gvecA(i3,:));
+        %                     [gw1B,gw2B,gw3B] = ndgrid(GW(1).gvecB(i1,:),GW(2).gvecB(i2,:),GW(3).gvecB(i3,:));
+        %                     gw = (gw1A .* gw2A .* gw3A) + (gw1B .* gw2B .* gw3B);
+        %                     % gaussian window storage for hilbert amplitude later:
+        %                     gwloc = gw > gws;
+        %                     gws(gwloc) = gw(gwloc);
+        %                     % apply it
+        %                     FM_voice = ifftn(FM .* gw);
+        %                     if fullflag % full 6D spectrum, if required
+        %                         ST.ST(i1,i2,i3,:,:,:) = FM_voice;
+        %                     end
+        %                     % in any case, do the collapsed rapide spectrum
+        %                     loc = abs(FM_voice) > abs(ST.C);
+        %                     ST.C(loc) = FM_voice(loc);
+        %                     ST.F1(loc) = ST.freqs{1}(i1);
+        %                     ST.F2(loc) = ST.freqs{2}(i2);
+        %                     ST.F3(loc) = ST.freqs{3}(i3);
+        %                 end
+        %             end
+        %         end
+        for isc = 1:totalnumscales
+            % find indeces for scales for each dimension:
+            i1 = allscales(1,isc);
+            i2 = allscales(2,isc);
+            i3 = allscales(3,isc);
+            % assemble gaussian window
+            [gw1A,gw2A,gw3A] = ndgrid(GW(1).gvecA(i1,:),GW(2).gvecA(i2,:),GW(3).gvecA(i3,:));
+            [gw1B,gw2B,gw3B] = ndgrid(GW(1).gvecB(i1,:),GW(2).gvecB(i2,:),GW(3).gvecB(i3,:));
+            gw = (gw1A .* gw2A .* gw3A) + (gw1B .* gw2B .* gw3B);
+            % gaussian window storage for hilbert amplitude later:
+            gwloc = gw > gws;
+            gws(gwloc) = gw(gwloc);
+            % apply it
+            FM_voice = ifftn(FM .* gw);
+            if fullflag && ~guidedfourierflag % full 6D spectrum, if required
+                ST.ST(i1,i2,i3,:,:,:) = FM_voice;
             end
+            % in any case, do the collapsed rapide spectrum
+            loc = abs(FM_voice) > abs(ST.C);
+            ST.C(loc) = FM_voice(loc);
+            ST.F1(loc) = ST.freqs{1}(i1);
+            ST.F2(loc) = ST.freqs{2}(i2);
+            ST.F3(loc) = ST.freqs{3}(i3);
+        end
+        
+    case 4 % 4DST!!
+        for isc = 1:totalnumscales
+            % find indeces for scales for each dimension:
+            i1 = allscales(1,isc);
+            i2 = allscales(2,isc);
+            i3 = allscales(3,isc);
+            i4 = allscales(4,isc);
+            % assemble gaussian window
+            [gw1A,gw2A,gw3A,gw4A] = ndgrid(GW(1).gvecA(i1,:),GW(2).gvecA(i2,:),GW(3).gvecA(i3,:),GW(4).gvecA(i4,:));
+            [gw1B,gw2B,gw3B,gw4B] = ndgrid(GW(1).gvecB(i1,:),GW(2).gvecB(i2,:),GW(3).gvecB(i3,:),GW(4).gvecB(i4,:));
+            gw = (gw1A .* gw2A .* gw3A .* gw4A) + (gw1B .* gw2B .* gw3B .* gw4B);
+            % gaussian window storage for hilbert amplitude later:
+            gwloc = gw > gws;
+            gws(gwloc) = gw(gwloc);
+            % apply it
+            FM_voice = ifftn(FM .* gw);
+            if fullflag && ~guidedfourierflag % full *D spectrum, if required
+                ST.ST(i1,i2,i3,i4,:,:,:,:) = FM_voice;
+            end
+            % in any case, do the collapsed rapide spectrum
+            loc = abs(FM_voice) > abs(ST.C);
+            ST.C(loc) = FM_voice(loc);
+            ST.F1(loc) = ST.freqs{1}(i1);
+            ST.F2(loc) = ST.freqs{2}(i2);
+            ST.F3(loc) = ST.freqs{3}(i3);
+            ST.F4(loc) = ST.freqs{4}(i4);
         end
 end
 
@@ -535,6 +862,9 @@ gws(gws < 0) = 0; % check for anomalies.
 % this gives us a nice blob showing which parts of the fft spectrum we've
 % considered in this ST, given the input scales.
 
+% Keep the coefficients in zero freqs the same as the input data:
+gws(imag(F) == 0) = 1;
+
 % Now use this like a filter on your input data, and take the Hilbert
 % transform of the result:
 H = ifftn(FM .* gws);
@@ -543,205 +873,11 @@ H = ifftn(FM .* gws);
 ST.HA = abs(H);
 ST.HR = real(H);
 
-ST.allGWs = gws;
+ST.allgws = gws;
 
 % and you're done. Simple as that. I think back to all the years I've been
 % thinking of how to do this, and here we are in a few lines. Mad.
 
-
-% % % 
-% % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % % % EDIT: Corwin didn't like the Hilbert amplitude, so let's try and do a
-% % % % convolution again but using the "filtered" spectrum.
-% % % 
-% % % FR = fftn(ST.R);
-% % % FH = fftn(ST.HR);
-% % % 
-% % % meanfactor = nanmean(abs(FH(:))) / nanmean(abs(FR(:)));
-% % % 
-% % % cv = sqrt(FH .* conj(FR .* meanfactor));
-% % % 
-% % % % cv = cv .* nph_mask(F);
-% % % 
-% % % disp('fart')
-% % % 
-% % % % meanfactor = nanmean(abs(ST.HA(:))) / nanmean(abs(ST.A(:)));
-% % % % 
-% % % % cv = sqrt(H .* conj(ST.C .* meanfactor));
-% % % % 
-% % % % cv = cv .* nanmean(abs(H(:)))/nanmean(abs(cv(:)));
-% % % % 
-% % % % ST.covA = abs(cv);
-% % % % ST.covR = real(cv);
-% % % 
-% % % % % % % % Fgw = F .* gws;
-% % % % 
-% % % % Fst = fftn(ST.R);
-% % % % 
-% % % % factor = nanmean(abs(Fgw(:))) / nanmean(abs(Fst(:)));
-% % % % 
-% % % % cv = sqrt(Fgw .* conj(Fst .* factor));
-% % % % 
-% % % % C = ST.C = ST.C .* (abs(cv) ./ abs(ST.C));
-% % Fw = F .* gws;
-% 
-% % Hf = FM .* gws;
-% hmean = nanmean(abs(Fw(:)));
-% stmean = nanmean(abs(ifftn(ST.R)));
-% 
-% C = ST.C .* (hmean/stmean);
-% 
-% cv = sqrt(C .* conj(Hf));
-% 
-% ST.covA = abs(cv);
-% ST.covR = real(cv);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-
-
-
-
-
-% % % % %
-% % % % % %% STEP 4: GAUSSIAN WINDOW COORDINATE SYSTEM ==============================
-% % % % % % create it outside the loop, to save processing time...
-% % % % % switch type
-% % % % %     % NEW GAUSSIAN WINDOW METHOD:
-% % % % %     case 1
-% % % % %         V1 = single((1:sz(1)) - (fix(sz(1)/2)+1));
-% % % % %         V1 = ifftshift(V1); % do the ifftshift here, save it from the loop
-% % % % %         V1_sq = V1.^2; % do the squared coord frame here, save doing it in the loop
-% % % % %     case 2
-% % % % %         V1 = single((1:sz(1)) - (fix(sz(1)/2)+1))'; % transpose is important
-% % % % %         V2 = single((1:sz(2)) - (fix(sz(2)/2)+1));
-% % % % %         V1 = ifftshift(V1);
-% % % % %         V2 = ifftshift(V2);
-% % % % %         V1_sq = V1.^2;
-% % % % %         V2_sq = V2.^2;
-% % % % %     case 3
-% % % % %         V1 = single((1:sz(1)) - (fix(sz(1)/2)+1))'; % transpose is important
-% % % % %         V2 = single((1:sz(2)) - (fix(sz(2)/2)+1));
-% % % % %         V3 = single((1:sz(3)) - (fix(sz(3)/2)+1));
-% % % % %         V3 = reshape(V3,[1 1 length(V3)]); % reshape for easy repmatting later.
-% % % % %
-% % % % %         V1 = ifftshift(V1);
-% % % % %         V2 = ifftshift(V2);
-% % % % %         V3 = ifftshift(V3);
-% % % % %         V1_sq = V1.^2;
-% % % % %         V2_sq = V2.^2;
-% % % % %         V3_sq = V3.^2;
-% % % % % end
-% % % % %
-% % % % % %% STEP 5: APPLY GAUSSIAN WINDOW AND IFFTN ================================
-% % % % % % go!
-% % % % % switch type
-% % % % %     %==========================================================================
-% % % % %     case 1 % 1DST
-% % % % %
-% % % % %         for i1 = 1:numscales(1), freq1 = scales{1}(i1);
-% % % % %             A1 = exp( (-2*pi^2) * (c(1)/abs(freq1))^2 * (V1_sq - 2*V1*freq1 + freq1^2));
-% % % % %             B1 = exp( (-2*pi^2) * (c(1)/abs(freq1))^2 * (V1_sq + 2*V1*freq1 + freq1^2));
-% % % % %             gw = A1 + B1;
-% % % % %
-% % % % %             FM_voice = ifft(FM .* gw);
-% % % % %
-% % % % %             ST.ST(i1,:) = FM_voice;
-% % % % %             % Always compute the full 2D spectrum, it's not much :)
-% % % % %
-% % % % %             % in any case, do the collapsed rapide spectrum too:
-% % % % %             loc = abs(FM_voice) > abs(ST.C);
-% % % % %             ST.C(loc) = FM_voice(loc);
-% % % % %             ST.F1(loc) = ST.freqs(i1);
-% % % % %
-% % % % %         end
-% % % % %
-% % % % %         %         [~,inds] = max(abs(ST.ST),[],1);
-% % % % %         %         ST.F1 = ST.freqs(inds);
-% % % % %
-% % % % %         ST.A = abs(ST.C);
-% % % % %         ST.R = real(ST.C);
-% % % % %
-% % % % %         %==========================================================================
-% % % % %     case 2 % 2DST
-% % % % %         % assemble gaussian components only when you have to:
-% % % % %         for i1 = 1:numscales(1), freq1 = scales{1}(i1);
-% % % % %             A1 = exp( (-2*pi^2) * (c(1)/abs(freq1))^2 * (V1_sq - 2*V1*freq1 + freq1^2));
-% % % % %             B1 = exp( (-2*pi^2) * (c(1)/abs(freq1))^2 * (V1_sq + 2*V1*freq1 + freq1^2));
-% % % % %             for i2 = 1:numscales(2), freq2 = scales{2}(i2);
-% % % % %                 A2 = exp( (-2*pi^2) * (c(2)/abs(freq2))^2 * (V2_sq - 2*V2*freq2 + freq2^2));
-% % % % %                 B2 = exp( (-2*pi^2) * (c(2)/abs(freq2))^2 * (V2_sq + 2*V2*freq2 + freq2^2));
-% % % % %
-% % % % %                 G1 = repmat(A1,1,osz(2));
-% % % % %                 G2 = repmat(A2,osz(1),1);
-% % % % %                 G1b = repmat(B1,1,osz(2));
-% % % % %                 G2b = repmat(B2,osz(1),1);
-% % % % %                 gw = (G1 .* G2) + (G1b .* G2b);
-% % % % %
-% % % % %                 FM_voice = ifftn(FM .* gw);
-% % % % %
-% % % % %                 if fullflag % full 4D spectrum, if required
-% % % % %                     ST.ST(i1,i2,:,:) = FM_voice;
-% % % % %                 end
-% % % % %
-% % % % %                 % in any case, do the collapsed rapide spectrum
-% % % % %                 loc = abs(FM_voice) > abs(ST.C);
-% % % % %                 ST.C(loc) = FM_voice(loc);
-% % % % %                 ST.F1(loc) = ST.freqs{1}(i1);
-% % % % %                 ST.F2(loc) = ST.freqs{2}(i2);
-% % % % %
-% % % % %             end
-% % % % %         end
-% % % % %
-% % % % %         ST.A = abs(ST.C);
-% % % % %         ST.R = real(ST.C);
-% % % % %
-% % % % %         %==========================================================================
-% % % % %     case 3 % 3DST
-% % % % %         % assemble gaussian components only when you have to:
-% % % % %         for i1 = 1:numscales(1), freq1 = scales{1}(i1);
-% % % % %             A1 = exp( (-2*pi^2) * (c(1)/abs(freq1))^2 * (V1_sq - 2*V1*freq1 + freq1^2));
-% % % % %             B1 = exp( (-2*pi^2) * (c(1)/abs(freq1))^2 * (V1_sq + 2*V1*freq1 + freq1^2));
-% % % % %             for i2 = 1:numscales(2), freq2 = scales{2}(i2);
-% % % % %                 A2 = exp( (-2*pi^2) * (c(2)/abs(freq2))^2 * (V2_sq - 2*V2*freq2 + freq2^2));
-% % % % %                 B2 = exp( (-2*pi^2) * (c(2)/abs(freq2))^2 * (V2_sq + 2*V2*freq2 + freq2^2));
-% % % % %                 for i3 = 1:numscales(3), freq3 = scales{3}(i3);
-% % % % %                     A3 = exp( (-2*pi^2) * (c(3)/abs(freq3))^2 * (V3_sq - 2*V3*freq3 + freq3^2));
-% % % % %                     B3 = exp( (-2*pi^2) * (c(3)/abs(freq3))^2 * (V3_sq + 2*V3*freq3 + freq3^2));
-% % % % %
-% % % % %                     G1  = repmat(A1,1,osz(2),osz(3));
-% % % % %                     G2  = repmat(A2,osz(1),1,osz(3));
-% % % % %                     G3  = repmat(A3,osz(1),osz(2),1);
-% % % % %                     G1b = repmat(B1,1,osz(2),osz(3));
-% % % % %                     G2b = repmat(B2,osz(1),1,osz(3));
-% % % % %                     G3b = repmat(B3,osz(1),osz(2),1);
-% % % % %                     gw = (G1 .* G2 .* G3) + (G1b .* G2b .* G3b);
-% % % % %
-% % % % %                     FM_voice = ifftn(FM .* gw);
-% % % % %
-% % % % %                     if fullflag % full 6D spectrum, if required
-% % % % %                         ST.ST(i1,i2,i3,:,:,:) = FM_voice;
-% % % % %                     end
-% % % % %
-% % % % %                     % in any case, do the collapsed rapide spectrum
-% % % % %                     loc = abs(FM_voice) > abs(ST.C);
-% % % % %                     ST.C(loc) = FM_voice(loc);
-% % % % %                     ST.F1(loc) = ST.freqs{1}(i1);
-% % % % %                     ST.F2(loc) = ST.freqs{2}(i2);
-% % % % %                     ST.F3(loc) = ST.freqs{3}(i3);
-% % % % %
-% % % % %                 end
-% % % % %             end
-% % % % %         end
-% % % % %
-% % % % %         ST.A = abs(ST.C);
-% % % % %         ST.R = real(ST.C);
-% % % % %
-% % % % %         %==========================================================================
-% % % % %
-% % % % % end
 
 %% HILBERT BOOSTING =======================================================
 if boostflag
@@ -789,16 +925,9 @@ end
 
 
 
-
-
-
-
-
-
 %==========================================================================
-% NDST FIN
+end  %  NDST FIN
 %==========================================================================
-end
 
 
 
@@ -821,6 +950,27 @@ end
 
 function m = nph_mask(F)
 
+% % % % % % //// new quicker version:
+% % % % %
+% % % % % % mask template of NaNs
+% % % % % m = nan(size(F));
+% % % % %
+% % % % % % find logicals for one half of all complex conjugate pairs:
+% % % % % pairs = imag(F) == conj(abs(imag(F)));
+% % % % %
+% % % % % % Assign this to be 2, and the other in the pair to be 0:
+% % % % % % (order doesn't matter, will be random-ish)
+% % % % % m(pairs) = 2;
+% % % % % m(~pairs) = 0;
+% % % % %
+% % % % % % finally, put in the zero freqs:
+% % % % % % IMPORTANT THAT YOU DO THIS LAST, SO THAT THE ABOVE DOESN'T OVERWRITE IT
+% % % % % m(imag(F) == 0) = 1;
+% % % % %
+% % % % % % FIN
+
+F = fftshift(F);
+
 % mask template of NaNs
 m = nan(size(F));
 
@@ -841,10 +991,20 @@ a = a(a ~= 0);
 ar = reshape(a',2,length(a)/2);
 ibr = reshape(ib',2,length(ib)/2);
 
+% % % % % sort again:
+% % % % [~,ib] = sort(ibr(1,:));
+% % % % ibr = ibr(:,ib);
+% % % %
+% % % % % take a checkerboard map rather than the blocks:
+% % % % s = ibr;
+% % % % s(1,2:2:end) = ibr(2,2:2:end);
+% % % % s(2,2:2:end) = ibr(1,2:2:end);
+
 % now assign 2s and 0s (doesn't matter which order):
 m(ibr(1,:)) = 2;
 m(ibr(2,:)) = 0;
-
+% % % % m(s(1,:)) = 2;
+% % % % m(s(2,:)) = 0;
 % and you're done!!
 
 end
@@ -1180,37 +1340,3 @@ fftw(wisdomtype,fftwisdom); % apply the wisdom
 
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
