@@ -102,7 +102,8 @@ Model.Time = AllData.Time;
 Model.T    = double(permute(AllData.T,[4,2,1,3]));
 Model.Prs  = AllData.Prs;
 
-
+%shift longitudes into range
+Model.Lon(Model.Lon > 180) = Model.Lon(Model.Lon > 180) - 360;
 
 %success!
 Model.Error = 0;
