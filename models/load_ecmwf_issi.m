@@ -1,6 +1,6 @@
-% function Model = load_ecmwf_issi(ObsGrid)
+function Model = load_ecmwf_issi(ObsGrid)
 
-ObsGrid = load('C:\Data\corwin\sampling_project\tracks\AIRS_3D\track_airs3d_734420_g170.mat');
+% ObsGrid = load('C:\Data\corwin\sampling_project\tracks\AIRS_3D\track_airs3d_734420_g170.mat');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -21,7 +21,6 @@ DataDir = [LocalDataDir,'/corwin/issi/inna/'];
 %set up the runs, so we need to be careful.
 BasisTime      = datenum(2010,10,09,12,0,0); %this is file "ifs_t001.nc"
 TimeStep       = 15./24./60;                 %this is the time step for each additional file
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this input grid
