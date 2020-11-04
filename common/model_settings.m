@@ -11,6 +11,8 @@ switch ModelType
     Model = load_cfsr(          DayNumber);  
   case 'ec_fc';   
     Model = load_ecmwf_forecast(DayNumber,Settings.HoursAhead,Settings.MaxPrs);
+  case 'ecmwf_issi';   
+    Model = load_ecmwf_forecast(   ObsGrid);     
   case 'era5';    
     Model = load_era5(          DayNumber,Settings.MaxPrs); 
   case 'erai';    
@@ -24,7 +26,7 @@ switch ModelType
   case 'um_fc';   
     Model = load_um_forecast(   DayNumber,ObsGrid);  
   case 'um_issi';   
-    Model = load_um_forecast(   ObsGrid);    
+    Model = load_um_issi(   ObsGrid);    
   otherwise
     disp('Model not on specified list. Stopping')
     OldData.ModelID = ''; %we need to set this for the return
