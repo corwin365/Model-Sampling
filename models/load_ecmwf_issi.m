@@ -1,4 +1,4 @@
-function Model = load_ecmwf_issi(ObsGrid)
+% % % function Model = load_ecmwf_issi(ObsGrid)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -18,14 +18,13 @@ DataDir = [LocalDataDir,'/corwin/issi/inna/'];
 %this does not correspond to normal ECMWF time handling due to the way Inna 
 %set up the runs, so we need to be careful.
 BasisTime      = datenum(2010,10,09,12,0,0); %this is file "ifs_t001.nc"
-TimeStep       = 15./24./60;                 %this is the time step for each additional file
+TimeStep       = 7.5./24./60;                 %this is the time step for each additional file
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this input grid
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %define timestep grid
-Step = 1./24./60.*15;
 First = min(ObsGrid.Track.Time(:));
 Last  = max(ObsGrid.Track.Time(:));
 
@@ -33,17 +32,17 @@ Last  = max(ObsGrid.Track.Time(:));
 MaxPrs = 10.^max(ObsGrid.Track.Prs(:)).*1.2;
 MinPrs = 10.^min(ObsGrid.Track.Prs(:))./1.2;
 
+%generate a list of timesteps. must be even, as only archived every 2 steps (15 minutes)
+FirstStep = floor((First-BasisTime)./TimeStep)-1;
+LastStep  = ceil((  Last-BasisTime)./TimeStep)+1;
+Steps = FirstStep:1:LastStep;
+Steps = Steps(mod(Steps,2) ==0);
 
-%round 'first' and 'last' time to the nearest 15-min step, rounding away from the sample
-First = floor(First./Step).*Step;
-Last  = ceil(  Last./Step).*Step;
+for Step=Steps
 
-for Time=First:Step:Last;
-
-  
+ 
   %identify file
-  ThisStep = round((Time-BasisTime)./TimeStep);
-  FileName = [DataDir,'ifs_t',sprintf('%03d',ThisStep),'.nc'];
+  FileName = [DataDir,'ifs_',sprintf('%04d',Step),'.nc']
           
 
   %load file
