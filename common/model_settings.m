@@ -12,7 +12,7 @@ switch ModelType
   case 'ec_fc';   
     Model = load_ecmwf_forecast(DayNumber,Settings.HoursAhead,Settings.MaxPrs);
   case 'ecmwf_issi';   
-    Model = load_ecmwf_forecast(   ObsGrid);     
+    Model = load_ecmwf_issi(ObsGrid);     
   case 'era5';    
     Model = load_era5(          DayNumber,Settings.MaxPrs); 
   case 'erai';    

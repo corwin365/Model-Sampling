@@ -47,6 +47,10 @@ switch Instrument
     Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/AIRS_1D/'];
     Settings.ObsProperties.FileString = 'airs1d';
     Settings.FineGrid                 = CoreVars.Airs.FineGrid;
+  case 'cosmic_petr'
+    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/COSMICpetr/'];
+    Settings.ObsProperties.FileString = 'cosmic_petr';
+    Settings.FineGrid                 = CoreVars.Cosmic.FineGrid;    
   otherwise
     disp('Instrument not on specified list. Stopping')
     stop

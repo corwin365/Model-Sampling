@@ -1,4 +1,4 @@
-% % function [Error,OldData] = sampling_core_singlethread(Instrument,ModelType,DayNumber,OldData,NoClobber,Sensitivity,SubSet,ForecastHours)
+function [Error,OldData] = sampling_core_singlethread(Instrument,ModelType,DayNumber,OldData,NoClobber,Sensitivity,SubSet,ForecastHours)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -14,12 +14,12 @@
 %4. sensitivity testing, and output path not set
 
 
-  %testing parameters
-  clearvars -except OldData
-  Instrument      = 'airs3d';
-  DayNumber       = datenum(2010,10,17);
-  ModelType       = 'cesm_ck';
-  SubSet = 183;
+% %   %testing parameters
+% %   clearvars -except OldData
+% %   Instrument      = 'airs3d';
+% %   DayNumber       = datenum(2010,10,17);
+% %   ModelType       = 'cesm_ck';
+% %   SubSet = 183;
 % % 
 % %   %sensitivity-testing testing parameters
 % %   Sensitivity.Mode = 1;

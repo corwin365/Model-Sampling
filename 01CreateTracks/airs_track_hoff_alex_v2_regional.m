@@ -15,7 +15,7 @@ Settings.OutDir     = [CoreVars.MasterPath,'/tracks/AIRS_3D/'];
 Settings.PrsLevels  = CoreVars.Airs3D.HeightRange;
 Settings.LatRange   = [-75,-40];
 Settings.LonRange   = [-85,-35];
-Settings.TimeRange  = datenum(2010,10,[8,8]);
+Settings.TimeRange  = datenum(2010,10,[8,19]);
 
 %define the vertical resolution of the retrieval at each height
 %taken from figure 5a of Hoffmann and Alexander 2009, cz=50km curve

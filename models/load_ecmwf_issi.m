@@ -1,4 +1,4 @@
-% % % function Model = load_ecmwf_issi(ObsGrid)
+function Model = load_ecmwf_issi(ObsGrid)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -41,38 +41,49 @@ Steps = Steps(mod(Steps,2) ==0);
 for Step=Steps
 
   %identify file
-  FileName = [DataDir,'ifs_',sprintf('%04d',Step),'.nc']
+  FileName = [DataDir,'ifs_',sprintf('%04d',Step),'.nc'];
           
   %load file
   if ~exist(FileName,'file');
+    FileName
+    disp('file load failed')
     Model.Error = 2;
     return
   end
   Data = cjw_readnetCDF(FileName);  
   
+  %replace the outer edge with NaNs, so that data can't be extrapolated beyond the edge
+  Data.t(  1,  :,:) = NaN;
+  Data.t(end,  :,:) = NaN;
+  Data.t(  :,  1,:) = NaN;
+  Data.t(  :,end,:) = NaN;
+  
   %pull out vars
   T = Data.t;
   Prs = ecmwf_prs_v2([],137);
   Lat = Data.latitude;
-  Lon = Data.longitude;
-  
+  Lon = Data.longitude; 
   
   %pull out and reformat data
-  if Time == First;
+  if Step == Steps(1);
     AllData.T    = T;
     AllData.Prs  = Prs;
-    AllData.Time = Time;
+    AllData.Time = Step;
     AllData.Lat  = Lat;
     AllData.Lon  = Lon;
   else
     AllData.T    = cat(4,AllData.T,single(T));
-    AllData.Time = cat(1,AllData.Time,Time);
+    AllData.Time = cat(1,AllData.Time,Step);
     
   end
   
   clear Data Good Prs T FileName y M d h m 
 
 end; clear Time First Last Step
+
+
+%convert times back to steps
+AllData.Time = BasisTime+(AllData.Time.*TimeStep);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -94,11 +105,15 @@ end; clear Time First Last Step
 Model.Lon  = Lon;
 Model.Lat  = Lat;
 Model.Time = AllData.Time;
-Model.T    = double(permute(AllData.T,[4,2,1,3]));
+Model.T    = double(permute(AllData.T,[4,1,2,3]));
 Model.Prs  = AllData.Prs;
 
 %shift longitudes into range
 Model.Lon(Model.Lon > 180) = Model.Lon(Model.Lon > 180) - 360;
+
+%make lat increase monotonically
+Model.Lat = Model.Lat(end:-1:1);
+Model.T   = Model.T(:,:,end:-1:1,:);
 
 %success!
 Model.Error = 0;
