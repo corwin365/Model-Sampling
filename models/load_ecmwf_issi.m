@@ -40,11 +40,9 @@ Steps = Steps(mod(Steps,2) ==0);
 
 for Step=Steps
 
- 
   %identify file
   FileName = [DataDir,'ifs_',sprintf('%04d',Step),'.nc']
           
-
   %load file
   if ~exist(FileName,'file');
     Model.Error = 2;
