@@ -31,13 +31,13 @@ Settings.LogPSpacing = 1/1000;
 %maximum frac of NaNs in profile:
 Settings.MaxNaNFrac = 0.75;%
 
-for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
+for iDay=Settings.TimeRange;
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %generate file name
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   DayFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(iDay),'.mat'];
-  if exist(DayFile); continue; end
+%   if exist(DayFile); continue; end
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %% import data

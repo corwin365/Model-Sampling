@@ -33,7 +33,7 @@ function CoreVars = sampling_core_variables
   %COSMIC
   %%%%%%%%%%%%%%%%%%%%%%%%
   CoreVars.Cosmic.Path         = [LocalDataDir,'/COSMIC/daily_atmprf'];
-  CoreVars.Cosmic.HeightRange  = h2p([15,50]);
+  CoreVars.Cosmic.HeightRange  = h2p([8,50]);
   CoreVars.Cosmic.TimeRange    = [datenum(2006,1,112),datenum(2016,12,30)];  
   CoreVars.Cosmic.FineGrid.X   = 10; %along-track km. chosen from sensitivity tests
   CoreVars.Cosmic.FineGrid.Y   = 0.5; %across-track km. chosen from sensitivity tests
