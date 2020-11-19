@@ -17,7 +17,7 @@ Settings.Instrument = 'cosmic_petr';
 Settings.InDir      = CoreVars.Cosmic.Path;
 Settings.OutDir     = [CoreVars.MasterPath,'/tracks/COSMICpetr/'];
 Settings.PrsRange   = CoreVars.Cosmic.HeightRange;
-Settings.TimeRange  = [1,1].*datenum(2010,1,286);
+Settings.TimeRange  = datenum(2010,10,8):1:datenum(2010,10,19)
 
 %restrict to study region
 Settings.LatRange   = [-75,-40];
