@@ -6,15 +6,22 @@ CoreVars = sampling_core_variables;
 %extract lat,lon,z of each COSMIC point, to allow model sampling
 %store in daily files of a common format
 %
+%This is a modified version for just Andes/Peninsula, but at full res.
+%
+%
 %unlike the others, also store T, since it's downsampled.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%general settings
 Settings.Instrument = 'cosmic_petr';
 Settings.InDir      = CoreVars.Cosmic.Path;
 Settings.OutDir     = [CoreVars.MasterPath,'/tracks/COSMICpetr/'];
 Settings.PrsRange   = CoreVars.Cosmic.HeightRange;
 Settings.TimeRange  = [1,1].*datenum(2010,1,286);
 
+%restrict to study region
+Settings.LatRange   = [-75,-40];
+Settings.LonRange   = [-85,-35];
 
 %interpolate to constant height scale
 %we'll use a 1/1000 decade scale - this is higher than any actual data in the file (just)
@@ -47,8 +54,7 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
 
   %interpolate all profiles onto a constant log-pressure scale
   PrsScale = 10.^(log10(Settings.PrsRange(2)):Settings.LogPSpacing:log10(Settings.PrsRange(1)));
-  Profs.Prs = repmat(PrsScale',1,size(Data,2));
-
+  Profs.Prs = repmat(PrsScale',1,size(Data,2)); 
 
   VarsIn  = {'Lon','Lat','Azim','Time','Temp'};
   VarsOut = {'Lon','Lat','Az','Time','T'};
@@ -96,15 +102,31 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   %tidy up
   clear dn PrsScale VarsIn y InFile
 
-  %remove NaN profiles
+  %remove NaN profiles, and discard any profiles not entirely in the study region
   NaNProf = sum(Profs.T,1) + sum(Profs.Lon,1) + sum(Profs.Lat,1) + sum(Profs.Az,1) + sum(Profs.Time,1); %can omit prs as we made it
   Good = find(~isnan(NaNProf));  
+  
+  InRegion = [];
+  for iProf=1:1:size(Profs.Lat,2)
+    if nanmin(Profs.Lon(:,iProf)) > min(Settings.LonRange) ...
+     & nanmin(Profs.Lat(:,iProf)) > min(Settings.LatRange) ...
+     & nanmax(Profs.Lat(:,iProf)) < max(Settings.LatRange) ...
+     & nanmax(Profs.Lat(:,iProf)) < max(Settings.LatRange);
+      InRegion(end+1) = iProf;
+    end
+  end
+  
+  
+  Good = intersect(Good,InRegion);
   Profs.Prs = Profs.Prs(:,Good); %handled separately
   for iVar=1:1:numel(VarsOut);
     Var = Profs.(VarsOut{iVar});
     Var = Var(:,Good);
     Profs.(VarsOut{iVar}) = Var;
   end; clear iVar Var NaNProf Good VarsOut
+  
+ 
+  
   
 
   %and rename/reshape variables to reuse old code below (copied from HIRDLS routine)
