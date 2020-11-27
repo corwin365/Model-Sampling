@@ -31,13 +31,9 @@ Settings.LogPSpacing = 1/1000;
 %maximum frac of NaNs in profile:
 Settings.MaxNaNFrac = 0.75;%
 
-for iDay=Settings.TimeRange;
+for jDay=1:1:numel(Settings.TimeRange);
   
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  %generate file name
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
-  DayFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(iDay),'.mat'];
-%   if exist(DayFile); continue; end
+  iDay = Settings.TimeRange(jDay);
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %% import data
@@ -50,6 +46,7 @@ for iDay=Settings.TimeRange;
 
   if ~exist(InFile); continue; end
   load(InFile)
+
 
 
   %interpolate all profiles onto a constant log-pressure scale
@@ -110,7 +107,7 @@ for iDay=Settings.TimeRange;
   for iProf=1:1:size(Profs.Lat,2)
     if nanmin(Profs.Lon(:,iProf)) > min(Settings.LonRange) ...
      & nanmin(Profs.Lat(:,iProf)) > min(Settings.LatRange) ...
-     & nanmax(Profs.Lat(:,iProf)) < max(Settings.LatRange) ...
+     & nanmax(Profs.Lon(:,iProf)) < max(Settings.LonRange) ...
      & nanmax(Profs.Lat(:,iProf)) < max(Settings.LatRange);
       InRegion(end+1) = iProf;
     end
@@ -152,6 +149,11 @@ for iDay=Settings.TimeRange;
   Recon.x = single(x(:));
   Recon.z = single(z(:));
   clear x z
+
+  
+  %also store a unique average time for each profile, so that when we 
+  %split the data into hourly chunks none span these time interfaces
+  t = repmat((nanmean(Profs.Time,1))',1,size(Time,2));
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %define the approximate weighting blob
@@ -171,6 +173,9 @@ for iDay=Settings.TimeRange;
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %save!
+  %
+  %split into one-hour chunks to keep memory manageable
+  %for the big high-res runs Chris and Annelize provided
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
    
   
@@ -197,7 +202,27 @@ for iDay=Settings.TimeRange;
   clear Lat Lon Prs Time
 
   %and save it
-  save(DayFile,'Track','Recon','Weight');
+  TrackStore  = Track;  clear Track
+  ReconStore  = Recon;  clear Recon
+  WeightStore = Weight; clear Weight
+  t = t(:);
+  [~,~,~,h,~,~] = datevec(t);
+  for iChunk=1:1:24;
+    
+    %select all the points in this hour
+    InHour = find(h == iChunk);
+    
+    %create track and recon arrays considering of these points
+    Track  = reduce_struct( TrackStore,InHour);
+    Recon  = reduce_struct( ReconStore,InHour);
+    Weight = reduce_struct(WeightStore,InHour);
+    
+    %and store
+    OutFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(iDay),'_g',sprintf('%03d',iChunk),'.mat'];
+    save(OutFile,'Track','Recon','Weight');
+  end
+  
+  
   
   
   

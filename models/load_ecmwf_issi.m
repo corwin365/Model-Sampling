@@ -52,11 +52,11 @@ for Step=Steps
   end
   Data = cjw_readnetCDF(FileName);  
   
-  %replace the outer edge with NaNs, so that data can't be extrapolated beyond the edge
-  Data.t(  1,  :,:) = NaN;
-  Data.t(end,  :,:) = NaN;
-  Data.t(  :,  1,:) = NaN;
-  Data.t(  :,end,:) = NaN;
+% % %   %replace the outer edge with NaNs, so that data can't be extrapolated beyond the edge
+% % %   Data.t(  1,  :,:) = NaN;
+% % %   Data.t(end,  :,:) = NaN;
+% % %   Data.t(  :,  1,:) = NaN;
+% % %   Data.t(  :,end,:) = NaN;
   
   %pull out vars
   T = Data.t;
