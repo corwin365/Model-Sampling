@@ -1,4 +1,4 @@
-function [Error,OldData] = sampling_core(Instrument,ModelType,DayNumber,OldData,NoClobber,Sensitivity,SubSet,ForecastHours)
+function [Error,OldData] = sampling_core(Instrument,ModelType,DayNumber,OldData,NoClobber,Sensitivity,SubSet,ForecastHours,IncludeNaNs)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -45,6 +45,18 @@ addpath(genpath('/home/f/cw785/Matlab/20190122ModelSamplingCode/')); %duplicates
 if exist('NoClobber')     ~=1; NoClobber =0 ;       end %handles whether we repeat files done before
 if exist('Sensitivity')   ~=1; Sensitivity.Mode =0 ;end %handles whether we're in sensitivity-testing mode
 if numel(Sensitivity)     ==0; Sensitivity.Mode =0 ;end %allows us to set var as [] to skip
+if exist('IncludeNaNs') ==1;
+  %if a weighting function includes NaNs, do we include them or not? 
+  %Useful for limited-area model runs where we care about edge effects.
+  %any value other than zero or missing will include these blobs
+  if IncludeNaNs ~= 0;  
+    IncludeNaNs =1; 
+  else; 
+    disp('Blobs containing any NaNs will be set to NaN'); 
+    IncludeNans = 0; 
+  end;
+else IncludeNaNs = 1; end 
+
 
 %very large datsets may need splitting into subdirunal subsets
 %the original case this was written for was AIRS-3D, which is in 240
@@ -643,7 +655,11 @@ parfor iSample = 1:1:numel(FinalT) %replace for with parfor to split over multip
   Fine.T = I(single(Fine.Lon(:)),single(Fine.Lat(:)),single(Fine.Prs(:)));
   
   %scale by weights, and store
-  FinalT(iSample) = nansum(flatten(Fine.T).*flatten(W));
+  if IncludeNaNs == 1;
+    FinalT(iSample) = nansum(flatten(Fine.T).*flatten(W));
+  else
+    FinalT(iSample) = sum(flatten(Fine.T).*flatten(W));
+  end
   
   %also compute simple T at measurement centre
   SimpleT(iSample) = I(single(Sample.Lon),single(Sample.Lat),single(Sample.Prs));

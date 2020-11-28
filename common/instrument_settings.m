@@ -51,13 +51,11 @@ switch Instrument
     Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/COSMICpetr/'];
     Settings.ObsProperties.FileString = 'cosmic_petr';
     Settings.FineGrid                 = CoreVars.Cosmic.FineGrid;    
+    SubSetOutString                   = ['_g',sprintf('%03d',SubSet)];
   otherwise
     disp('Instrument not on specified list. Stopping')
     stop
 end
-
-
-
 
 
 
