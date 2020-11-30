@@ -1,6 +1,6 @@
 function Model = load_um_issi(ObsGrid)
 
-% % % ObsGrid = load('C:\Data\corwin\sampling_project\tracks\AIRS_3D\track_airs3d_734419_g195.mat');
+% % ObsGrid = load('C:\Data\corwin\sampling_project\tracks\AIRS_3D\track_airs3d_734419_g195.mat');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -48,8 +48,8 @@ for Time=First:Step:Last;
               '2pt5km_L242_AP_TP_', ...
               sprintf('%04d',y),sprintf('%02d',M),sprintf('%02d',d), ...
               'T',sprintf('%02d',h),sprintf('%02d',m),'_regular_grid.nc'];
-%   FileName = 'C:\Data\CESM\wrfout_d01_2010-10-08_13-00-00.nc' %temporary override for local testing                      
-                   
+% %   FileName = 'C:\Data\corwin\issi\annelize\2pt5km_L242_AP_TP_20101009T0300_regular_grid.nc' %temporary override for local testing                      
+  
 
   %load file
   if ~exist(FileName,'file');
@@ -58,6 +58,16 @@ for Time=First:Step:Last;
   end
   Data = cjw_readnetCDF(FileName,1);  
   
+  %remove out-of-range values
+  Data.STASH_m01s30i004(Data.STASH_m01s30i004 > 400) = NaN;
+  Data.STASH_m01s30i004(Data.STASH_m01s30i004 <   0) = NaN;  
+  
+  %put NaNs around the data, to stop over-extrapolation
+  Data.STASH_m01s30i004(  1,  :,:) = NaN;
+  Data.STASH_m01s30i004(end,  :,:) = NaN;
+  Data.STASH_m01s30i004(  :,  1,:) = NaN;
+  Data.STASH_m01s30i004(  :,end,:) = NaN;   
+         
   %pull out vars
   T = Data.STASH_m01s30i004;
   Prs = h2p(Data.STASH_m01s15i102./1000);
@@ -103,7 +113,7 @@ end; clear Time First Last Step
 Model.Lon  = Lon;
 Model.Lat  = Lat;
 Model.Time = AllData.Time;
-Model.T    = double(permute(AllData.T,[4,2,1,3]));
+Model.T    = double(permute(AllData.T,[4,1,2,3]));
 Model.Prs  = AllData.Prs;
 
 
