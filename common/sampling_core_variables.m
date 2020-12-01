@@ -51,7 +51,7 @@ function CoreVars = sampling_core_variables
   %AIRS (3D - Hoffman and Alexander)
   %%%%%%%%%%%%%%%%%%%%%%%%
   CoreVars.Airs3D.Path         = [LocalDataDir,'/AIRS/3d_airs/'];
-  CoreVars.Airs3D.HeightRange  = h2p([15,65]); 
+  CoreVars.Airs3D.HeightRange  = h2p([0,100]); 
   CoreVars.Airs3D.TimeRange    = [datenum(2013,1,1),datenum(2013,12,31)];   
   CoreVars.Airs3D.FineGrid.X   = 1; 
   CoreVars.Airs3D.FineGrid.Y   = 1;  

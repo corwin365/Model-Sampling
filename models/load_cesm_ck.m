@@ -75,6 +75,13 @@ for Time=First:Step:Last;
 % % % %   T = single(Data.T)./((1000./P).^0.2896);
 
 
+  %replace the outer edge with NaNs, so that data can't be extrapolated beyond the edge
+  Data.T(  1,  :,:) = NaN;
+  Data.T(end,  :,:) = NaN;
+  Data.T(  :,  1,:) = NaN;
+  Data.T(  :,end,:) = NaN;
+  
+
   %pull out and reformat data
   if Time == First;
     AllData.T    = Data.T;

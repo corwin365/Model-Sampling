@@ -60,7 +60,7 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
     
     if exist(OutFile) ~= 0;
       disp([datestr(iDay),', granule ',sprintf('%03d',iGranule),' already done'])
-%       continue
+      continue
     end
     
     
