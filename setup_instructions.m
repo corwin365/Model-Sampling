@@ -75,7 +75,7 @@ clearvars
 %
 
 
-%for (2), the only difference between the functions is that one uses Matlab's inbuild parallelisation libraries to run
+%for (2), the only difference between the functions is that one uses Matlab's inbuilt parallelisation libraries to run
 %loads of samples at the same time from the same call in 'wrapper.m', while the singlethread version only does one at a time
 % the standard version will be faster for most datasets, but for high-resolution datasets the singlethread version uses less 
 %memory (the multi version uses roughly NThreads x as much), and hence is more likely to run successfully
@@ -87,7 +87,7 @@ clearvars
 % - reconstruct_data_loop_3d_v2 for 3D datasets like AIRS, when procvessing entire days globally
 % - reconstruct_data_loop_3d_v2_withgaps for 3D datasets like AIRS, when the data has gaps in relative to the daily total (for example because we're only working regionally)
 %
-%You do not necessarly need to do this - the output from step (3) is perfectly correct but is jsut a lsit of points rather than formatted like the instrument measurement tracks
+%You do not necessarly need to do this - the output from step (3) is perfectly correct but is just a list of points rather than formatted like the instrument measurement tracks
 
 
 %if you only do step (2), then output will apear in the appropriate subdirectory of samples/ 
@@ -111,12 +111,12 @@ clearvars
 %add directory containing common functions to path.
 warning('off','MATLAB:mpath:nameNonexistentOrNotADirectory')
 addpath('./common')
-warning('on','MATLAB:mpath:nameNonexistentOrNotADirectory')
 
 %call core variable file to get the path set above
 CV = sampling_core_variables;
 MasterPath = CV.MasterPath;
 clear CV
+warning('on','MATLAB:mpath:nameNonexistentOrNotADirectory')
 
 %%get list of observational datasets
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
