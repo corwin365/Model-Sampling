@@ -4,7 +4,7 @@ CoreVars = sampling_core_variables;
 
 %parameters to vary
 ToVary.Instruments = {'airs3d'}%instruments to process
-ToVary.Models      = {'um_fc'}; %models to process
+ToVary.Models      = {'ifs_1km'}; %models to process
 
 %node runtime for a given instrument, minutes. programme wil select this.
 %getting this right allows more parallel jobs to run inside balena group cputime limit

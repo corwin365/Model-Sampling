@@ -14,7 +14,7 @@ Settings.InDir      = CoreVars.Airs3D.Path;
 Settings.OutDir     = [CoreVars.MasterPath,'/tracks/AIRS_3D/'];
 Settings.PrsLevels  = CoreVars.Airs3D.HeightRange;
 Settings.LatRange   = [-1,1].*90; 
-Settings.TimeRange  = CoreVars.Airs3D.TimeRange;
+Settings.TimeRange  = datenum(2019,11,[1,14]);%CoreVars.Airs3D.TimeRange;
 
 
 %define the vertical resolution of the retrieval at each height
@@ -80,9 +80,12 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
     if sum(Data.ret_z(:)) == 0; 
       Data.ret_z = [0;3;6;9;12;15;18;21;24;27;30;33;36;39;42;45;48;51;54;57;60;65;70;75;80;85;90];
     end
+    %if ret_press doesn't exist, make it
+    if ~isfield(Data,'ret_press'); Data.ret_press = h2p(Data.ret_z); end
+
     
-    %remove unneeded fields
-    Data = rmfield(Data,{'l1_nu','l1_rad','l2_time','l2_z','l2_lon','l2_lat','l2_press','l2_temp','l1_sat_z','l1_sat_lon','l1_sat_lat'});
+%     %remove unneeded fields
+%     Data = rmfield(Data,{'l1_nu','l1_rad','l2_time','l2_z','l2_lon','l2_lat','l2_press','l2_temp','l1_sat_z','l1_sat_lon','l1_sat_lat'});
     
     %discard unwanted heights
     InHeightRange = find(Data.ret_z >= p2h(CoreVars.Airs3D.HeightRange(1)) ...
@@ -209,6 +212,7 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   clear Lat Lon Prs Time
   
   %and save it
+
   save(DayFile,'Track','Recon','Weight');
   
   

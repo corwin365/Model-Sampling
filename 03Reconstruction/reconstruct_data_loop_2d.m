@@ -4,7 +4,7 @@ CoreVars = sampling_core_variables;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %reconstruct data extracted from model
-%works for 2D tracks, e.g. HIRDLS and SABER
+%works for 2D tracks, e.g. AIRS single channels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% settings

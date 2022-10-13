@@ -14,7 +14,7 @@ function CoreVars = sampling_core_variables
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   %master file path for files generated
-  CoreVars.MasterPath = [LocalDataDir,'/corwin/sampling_project/'];
+  CoreVars.MasterPath = [LocalDataDir,'/corwin/sampling_project2/'];
  
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   %model-specific settings
@@ -23,6 +23,8 @@ function CoreVars = sampling_core_variables
   %these have grown too numerous to be stored here
   %so they are now handled in the individual functions
   %just add the path where the functions are stored
+  %
+  %the list of which function is used for which model is in model_settings.m 
   addpath('../models/')
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
@@ -42,7 +44,7 @@ function CoreVars = sampling_core_variables
   %AIRS (2D - NASA JPL)
   %%%%%%%%%%%%%%%%%%%%%%%%
   CoreVars.Airs.Path         = [PhysicalDataDir,'/AIRS/selectedchannels/'];
-  CoreVars.Airs.HeightRange  = [2.5]; %%[2,2.5,3,4,7,10,20,30,40,60,80,100]; 
+  CoreVars.Airs.HeightRange  = [2,2.5,3,4,7,10,20,30,40,60,80,100]; 
   CoreVars.Airs.TimeRange    = [datenum(2002,8,31),datenum(2016,12,31)];    
   CoreVars.Airs.FineGrid.X   = 2; 
   CoreVars.Airs.FineGrid.Y   = 23;   

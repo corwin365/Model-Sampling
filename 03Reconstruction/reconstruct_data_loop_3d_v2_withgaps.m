@@ -14,7 +14,7 @@ Settings.InDataDir = [CoreVars.MasterPath,'/samples/'];
 
 %instrument
 Instruments = {'AIRS3D'};
-Models      = {'EC_FC'}; %
+Models      = {'IFS_1KM_FAKEWAVE'}; %
 
 
 for iInst=1:1:numel(Instruments)

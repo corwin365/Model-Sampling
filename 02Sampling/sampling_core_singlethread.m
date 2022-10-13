@@ -42,34 +42,35 @@ addpath(genpath('../common/'));
 addpath(genpath('/home/f/cw785/Matlab/20190122ModelSamplingCode/')); %duplicates above line - specific problem on Balena
 
 %clarify optional inputs
-if exist('NoClobber')   ~=1; NoClobber =0 ;       end %handles whether we repeat files done before
-if exist('Sensitivity') ~=1; Sensitivity.Mode =0 ;end %handles whether we're in sensitivity-testing mode
+if exist('NoClobber','var')   ~=1; NoClobber =0 ;       end %handles whether we repeat files done before
+if exist('Sensitivity','var') ~=1; Sensitivity.Mode =0 ;end %handles whether we're in sensitivity-testing mode
 if numel(Sensitivity)   ==0; Sensitivity.Mode =0 ;end %allows us to set var as [] to skip
-if exist('IncludeNaNs') ==1;
-  %if a weighting function includes NaNs, do we include them or not? 
+if exist('IncludeNaNs','var') ==1;
+  %if a measurement blob includes NaNs, do we include them or not? 
   %Useful for limited-area model runs where we care about edge effects.
   %any value other than zero or missing will include partially-sampled blobs
   if IncludeNaNs ~= 0;  
     IncludeNaNs =1; 
-  else; 
+  else;  
     disp('Blobs containing any NaNs will be set to NaN'); 
     IncludeNans = 0; 
   end;
-else IncludeNaNs = 1; end 
+else 
+  IncludeNaNs = 1; 
+end 
 
 
-%very large datsets may need splitting into subdirunal subsets
+%very large datasets may need splitting into subdiurnal subsets
 %the original case this was written for was AIRS-3D, which is in 240
 %granules per day. Setting a value here allows the sampling routine to address
 %these subsets individually.
-if ~exist('SubSet')
+if ~exist('SubSet','var')
   SubSet = 0;
 end
-if SubSet == 0
-  SubSetOutString = '';
+if SubSet == 0    SubSetOutString = '';
 else
   if SubSet == 0; SubSetOutString = '';
-  else SubSetOutString = ['_subset_',sprintf('%06d',SubSet)];
+  else            SubSetOutString = ['_subset_',sprintf('%06d',SubSet)];
   end
   disp(['Processing subset ',sprintf('%06d',SubSet)])
 end
@@ -84,7 +85,7 @@ Settings = struct();
 %if we're using forecast data, we need to specify how far ahead a forecast
 %we want. This will be used by the model selection subroutine to select
 %what data to feed back to the sampling parent
-if exist('ForecastHours') ~= 0
+if exist('ForecastHours','var') ~= 0
   if ForecastHours ~= 0;
     Settings.HoursAhead = ForecastHours;
     clear ForecastHours
@@ -98,7 +99,7 @@ if ~isfield(Settings,'HoursAhead');
 end
 
 %do we have a previously-used set of model interpolants in memory? if not, create an empty checking variable
-if ~exist('OldData'); OldData.ModelID = ''; end
+if ~exist('OldData','var'); OldData.ModelID = ''; end
 if ~isfield(OldData,'ModelID'); OldData.ModelID = ''; end
 
 %we're only interested in the stratosphere, so let's drop the lower troposphere
@@ -290,7 +291,7 @@ if Sensitivity.Mode ~= 0
 
   disp('**********************************************') 
   disp('***********Sensitivity testing mode***********')  
-  Sensitivity 
+  disp(Sensitivity )
   if isfield(Sensitivity,'FineGrid'); Sensitivity.FineGrid
   end
   disp('**********************************************') 
@@ -333,7 +334,7 @@ end
 %final steps before core loop:
 
 %1. if we're rotating in the vertical plane, we need density data.
-if nansum(ObsGrid.Track.ViewAngleZ) ~= 0
+if sum(ObsGrid.Track.ViewAngleZ,'omitnan') ~= 0
   %load density data (global-mean daily-mean saber-derived density)
   Density = struct();
   Density = load(DensityPath);
@@ -357,8 +358,8 @@ for iSample = 1:1:numel(FinalT) %replace for with parfor to split over multiple 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   %this section prints progress to the screen - comment out for non-testing use
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %  if iSample == 1; tic; end
-% %  if mod(iSample,10000) == 0; disp([round(iSample./numel(FinalT).*100.*100)./100,toc]);tic; end 
+ if iSample == 1; tic; end
+ if mod(iSample,10000) == 0; disp([round(iSample./numel(FinalT).*100.*100)./100,toc]);tic; end 
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   %these vars will generate warnings if not declared
@@ -438,7 +439,7 @@ for iSample = 1:1:numel(FinalT) %replace for with parfor to split over multiple 
     Channel.W   = ObsGrid.Weight.ZFuncs.Weights(Channel.ID,:); %keep for later  
 
     %discard parts that contribute very little
-    Channel.W(Channel.W < 0.02.*nansum(Channel.W(:))) = 0; %less than 2% is a good balance of useful volume and runtime (tested for AIRS 42km)
+    Channel.W(Channel.W < 0.02.*sum(Channel.W(:)),'omitnan') = 0; %less than 2% is a good balance of useful volume and runtime (tested for AIRS 42km)
 
     
     %set NaNs to zero
@@ -530,7 +531,7 @@ for iSample = 1:1:numel(FinalT) %replace for with parfor to split over multiple 
   Fine.Prs = Fine.Prs(Points); 
 
   %normalise remaining weights to sum to 1
-  W = W./nansum(W(:));  
+  W = W./sum(W(:),'omitnan');  
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %rotate to appropriate viewing angle
@@ -614,7 +615,7 @@ for iSample = 1:1:numel(FinalT) %replace for with parfor to split over multiple 
     W = W ./ Unscale .* Rescale;
 
     %renormalise
-    W = W./nansum(W(:));
+    W = W./sum(W(:),'omitnan');
     
     %done!
   end
@@ -655,7 +656,7 @@ for iSample = 1:1:numel(FinalT) %replace for with parfor to split over multiple 
   
   %scale by weights, and store
   if IncludeNaNs == 1;
-    FinalT(iSample) = nansum(flatten(Fine.T).*flatten(W));
+    FinalT(iSample) = sum(flatten(Fine.T).*flatten(W),'omitnan');
   else
     FinalT(iSample) = sum(flatten(Fine.T).*flatten(W));
   end
