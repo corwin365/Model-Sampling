@@ -203,7 +203,6 @@ ObsGrid.Track.Prs = log10(ObsGrid.Track.Prs);
   
 disp([Instrument,' track loaded for ',datestr(DayNumber)]);
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% load and prep model data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -563,7 +562,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   %tmost instruments are a simple Gaussian in height
   %these have *POSITIVE* Sample.WeightZ values
   %so create a height window accordingly
-  if Sample.WeightZ > 0
+  if Sample.WeightZ >= 0
     %first, find approx height of the measurement-centre pressure level
     z = p2h(10.^Sample.Prs);    
     %next, find height above and below this that we want, and convert to log-P
@@ -630,7 +629,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   %1d vertical weight
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-  if Sample.WeightZ > 0  %simple Gaussian approximation
+  if Sample.WeightZ >= 0  %simple Gaussian approximation
     z = p2h(10.^Fine.Prs);  
     Wz = normpdf(z,p2h(10.^Sample.Prs),Sample.WeightZ);
   else %not a simple Gaussian - interpolate from supplied information

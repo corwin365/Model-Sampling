@@ -1,23 +1,48 @@
 clearvars
-addpath('../common');
-CoreVars = sampling_core_variables;
+addpath(genpath('../'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%extract lat,lon,z of each HIRDLS point, to allow model sampling
-%store in daily files of a common format
+%produce OIF data for HIRDLS
+%
+%Corwin Wright, c.wright@bath.ac.uk, 2023/02/03
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Settings.Instrument = 'hirdls';
-Settings.InDir      = CoreVars.Hirdls.Path;
-Settings.OutDir     = [CoreVars.MasterPath,'/tracks/HIRDLS/'];
-Settings.PrsRange   = CoreVars.Hirdls.HeightRange; 
-Settings.TimeRange  = [1,1].*datenum(2007,1,2);%CoreVars.Hirdls.TimeRange;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% settings
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%dataset identifier
+Settings.Instrument = 'HIRDLS';
+
+%where do the input files live?
+Settings.InDir = [LocalDataDir,'/HIRDLS'];
+
+%geolocation - which data should we include?
+%for all except HeightRange, we include any wholegranule including these
+%for HeightRange, we will trim the granules in height to just this range
+Settings.LatRange    = [-90,90];
+Settings.LonRange    = [-180,180];
+Settings.TimeRange   = [1,1].*datenum(2007,1,2);
+Settings.HeightRange = [0,80]; %km
+
+%path handling internal to routine
+[~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
+Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
+clear CoreSettings
+
+
 
 for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %generate file name
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+  %create a directory to put the data in, if it doesn't exist
+  if exist(Settings.OutDir,'dir') ~= 7; mkdir(Settings.OutDir); end
+
+  %generate filename
   DayFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(iDay),'.mat'];
   
   
@@ -83,8 +108,8 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   
   
   %reduce down to just the pressure range we want
-  InPrsRange = find(Prs >= min(Settings.PrsRange) ...
-                  & Prs <= max(Settings.PrsRange));
+  InPrsRange = find(Prs >= p2h(max(Settings.HeightRange)) ...
+                  & Prs <= p2h(min(Settings.HeightRange)));
   Prs = Prs(  InPrsRange);
   Lat = HirdlsData.Lat(:,InPrsRange);
   Lon = HirdlsData.Lon(:,InPrsRange);

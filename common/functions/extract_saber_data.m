@@ -25,11 +25,12 @@ if ~isfield(OldFile,'Name'); OldFile.Name = ' '; end; %always load file afresh i
 
 %identify file for this month
 [y,m,~]   = datevec(MatlabDay);
-FileString = strcat(cjw_monthname(m),num2str(y),'_v2.0.mat');
+FileString = strcat(cjw_monthname(m),num2str(y),'_v2.0.nc');
 if strcmp(FileString,OldFile.Name) == 0;
   %new file - load it up
   
-  FileName = wildcardsearch(DataDir,FileString);
+  FileName = wildcardsearch(DataDir,['*',FileString])
+  stop
   
   if numel(FileName) == 0;  %no file
     SaberData.Error = 1;

@@ -1,6 +1,34 @@
 clearvars
-addpath('../common');
-CoreVars = sampling_core_variables;
+addpath(genpath('../'));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%produce OIF data for COSMIC
+%
+%Corwin Wright, c.wright@bath.ac.uk, 2023/02/03
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% settings
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%dataset identifier
+Settings.Instrument = 'COSMIC';
+
+%where do the input files live?
+Settings.InDir = [LocalDataDir,'/COSMIC/daily_atmPrf'];
+
+%geolocation - which data should we include?
+%for all except HeightRange, we include any wholegranule including these
+%for HeightRange, we will trim the granules in height to just this range
+Settings.LatRange    = [-90,90];
+Settings.LonRange    = [-180,180];
+Settings.TimeRange   = datenum(2010,1,[2,3]);
+Settings.HeightRange = [0,50]; %km
+
+%path handling internal to routine
+[~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
+Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
+clear CoreSettings
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %extract lat,lon,z of each COSMIC point, to allow model sampling
@@ -9,11 +37,6 @@ CoreVars = sampling_core_variables;
 %unlike the others, also store T, since it's downsampled.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Settings.Instrument = 'cosmic';
-Settings.InDir      = CoreVars.Cosmic.Path;
-Settings.OutDir     = [CoreVars.MasterPath,'/tracks/COSMIC/'];
-Settings.PrsRange   = CoreVars.Cosmic.HeightRange;
-Settings.TimeRange  = [1,1].*datenum(2010,1,1);%CoreVars.Cosmic.TimeRange;
 
 %COSMIC files have a massive number of levels, but in the stratosphere
 %resolution is 1.5km due to optics. so, to save sampling time, 
@@ -31,6 +54,11 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %generate file name
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+
+  %create a directory to put the data in, if it doesn't exist
+  if exist(Settings.OutDir,'dir') ~= 7; mkdir(Settings.OutDir); end
+
+  %and name the output file
   DayFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(iDay),'.mat'];
   if exist(DayFile); continue; end
   
@@ -42,11 +70,11 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   [y,~,~] = datevec(iDay);
   dn = date2doy(iDay);
   InFile = [Settings.InDir,'/',sprintf('%04d',y),'/cosmic_',sprintf('%04d',y),'_',sprintf('%03d',dn),'.mat'];
-%   if ~exist(InFile); continue; end
+  if ~exist(InFile); continue; end
   load(InFile)
 
   %interpolate all profiles onto a constant log-pressure scale
-  PrsScale = 10.^(log10(Settings.PrsRange(2)):Settings.LogPSpacing:log10(Settings.PrsRange(1)));
+  PrsScale = 10.^(log10(h2p(max(Settings.HeightRange))):Settings.LogPSpacing:log10(h2p(min(Settings.HeightRange))));
   Profs.Prs = repmat(PrsScale',1,size(Data,2));
 
   VarsIn = {'Lon','Lat','Azim','Time','Temp'};
@@ -54,6 +82,12 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   for iVar=numel(VarsIn):-1:1;
     Grid = NaN(size(Profs.Prs));
     for iProfile=1:1:size(Data,2);
+
+      %if time, duplicate out to a full profile as we only stored one point in these files
+      if strcmp(VarsIn{iVar},'Time');
+        t = Data(iProfile).(VarsIn{iVar});
+        Data(iProfile).(VarsIn{iVar}) = ones(size(Data(iProfile).Lat)).*t;
+      end
       
       %make sure the scales are monotonically increasing by...
       %ordering
@@ -82,14 +116,14 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
 
   %azimuths are c/w from N. which is what we want. yay!
 
-  %store QC flag, for later use
-  %keep both good and bad data as we may want to compare perfect-QC COSMIC with
-  %failed-QC COSMIC at a later date. remove them at the analysis stage if not.
-  Profs.QC = NaN(size(Profs.Prs));
-  for iQC=1:1:size(Profs.Prs,2);
-    Profs.QC(:,iQC) = Data(iQC).QC;
-  end
-  VarsOut = cat(2,VarsOut,'QC');
+% % % %   %store QC flag, for later use
+% % % %   %keep both good and bad data as we may want to compare perfect-QC COSMIC with
+% % % %   %failed-QC COSMIC at a later date. remove them at the analysis stage if not.
+% % % %   Profs.QC = NaN(size(Profs.Prs));
+% % % %   for iQC=1:1:size(Profs.Prs,2);
+% % % %     Profs.QC(:,iQC) = Data(iQC).QC;
+% % % %   end
+% % % %   VarsOut = cat(2,VarsOut,'QC');
   
   
   %tidy up
@@ -113,7 +147,7 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   T    = Profs.T';
   ViewAngleH = Profs.Az';
   Prs  = Profs.Prs';
-  QC   = Profs.QC';
+% % %   QC   = Profs.QC';
   
   %viewing angle from above isn't terribly meaningful for COSMIC
   %so set it to zero
@@ -157,7 +191,7 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   Lat  = Lat(:);
   Lon  = Lon(:);  
   T    = T(:);
-  QC   = QC(:);
+% % %   QC   = QC(:);
   ViewAngleH = ViewAngleH(:);
   ViewAngleZ = ViewAngleZ(:);  
   
@@ -166,7 +200,7 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   Track.Lat        = single(Lat);
   Track.Lon        = single(Lon);
   Track.Prs        = single(Prs);
-  Track.QC         = single(QC);
+% % %   Track.QC         = single(QC);
   Track.Time       = Time; %needs to be double
   Track.ViewAngleH = single(ViewAngleH);
   Track.ViewAngleZ = single(ViewAngleZ);

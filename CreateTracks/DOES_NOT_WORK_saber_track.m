@@ -1,19 +1,40 @@
 clearvars
-addpath('../common');
-CoreVars = sampling_core_variables;
+addpath(genpath('../'));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%produce OIF data for SABER
+%
+%Corwin Wright, c.wright@bath.ac.uk, 2023/02/03
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% settings
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%dataset identifier
+Settings.Instrument = 'SABER';
+
+%where do the input files live?
+Settings.InDir = [LocalDataDir,'/SABER/rawnc-v2'];
+
+%geolocation - which data should we include?
+%for all except HeightRange, we include any wholegranule including these
+%for HeightRange, we will trim the granules in height to just this range
+Settings.LatRange    = [-90,90];
+Settings.LonRange    = [-180,180];
+Settings.TimeRange   = datenum(2010,1,[2,3]);
+Settings.HeightRange = [0,50]; %km
+
+%path handling internal to routine
+[~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
+Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
+clear CoreSettings
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %extract lat,lon,z of each SABER point, to allow model sampling
 %store in daily files of a common format
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%information needed. 
-Settings.Instrument = 'saber';
-Settings.InDir      = CoreVars.Saber.Path;
-Settings.OutDir     = [CoreVars.MasterPath,'/tracks/SABER/'];
-Settings.PrsRange   = CoreVars.Saber.HeightRange; 
-Settings.TimeRange  = CoreVars.Saber.TimeRange; 
 
 
 OldFile = '';
@@ -22,6 +43,11 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %generate file name
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+
+  %create a directory to put the data in, if it doesn't exist
+  if exist(Settings.OutDir,'dir') ~= 7; mkdir(Settings.OutDir); end
+
+  %generate file name
   DayFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(iDay),'.mat'];
   if exist(DayFile) == 2;
     continue;
@@ -56,8 +82,8 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   
 
   %reduce down to just the pressure range we want
-  InPrsRange = find(nanmean(SaberData.Prs,2) >= min(Settings.PrsRange) ...
-                  & nanmean(SaberData.Prs,2) <= max(Settings.PrsRange));
+  InPrsRange = find(nanmean(SaberData.Prs,2) >= h2p(max(Settings.HeightRange)) ...
+                  & nanmean(SaberData.Prs,2) <= h2p(min(Settings.HeightRange)));
   SaberData.Prs  = SaberData.Prs( InPrsRange,:);
   SaberData.Lat  = SaberData.Lat( InPrsRange,:);
   SaberData.Lon  = SaberData.Lon( InPrsRange,:);

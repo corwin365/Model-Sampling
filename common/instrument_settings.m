@@ -47,7 +47,7 @@ InstInfo.AIRS.FineGrid = [2,3,1/20];
 
 %AIRS (3D)
 InstInfo.AIRS3D.FineGrid = [1,1,1/20];
-InstInfo.AIRS3D.SubSetOutString = ['_g',sprintf('%03d',Settings.SubSet)];
+InstInfo.AIRS3D.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
