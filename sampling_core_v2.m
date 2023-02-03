@@ -26,11 +26,16 @@ function [Error,OldData] = sampling_core_v2(Instrument,ModelName,DayNumber,varar
 %% setup
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%the master file path is not optional as it is used upstream. Set it here.
+%this is where all the track-input and sampled-output files live
+MasterPath = [LocalDataDir,'/corwin/sampling_project/'];
+
 %get functions
 addpath(genpath('common/'));
 
 %default error handling
 Error = -1; OldData.ModelID = '';
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% input parsing
@@ -44,6 +49,8 @@ IsPositiveInteger = @(x) validateattributes(x,{'numeric'},{'positive','integer'}
 IsPositive        = @(x) validateattributes(x,{'numeric'},{'positive'});
 IsNonNegative     = @(x) validateattributes(x,{'numeric'},{'>=',0});
 
+
+
 %inputs - required
 %%%%%%%%%%%%%%%%%%%
 
@@ -56,30 +63,28 @@ addRequired(p,'DayNumber',   @isnumeric);
 
 %flags
 addParameter(p, 'SensTestMode',  false,        @islogical);     %use sensitivity-testing mode? Note that this overrides many of these settings
-addParameter(p,      'Clobber',  false,        @islogical);     %overwrite previous output files (assume no)
-addParameter(p,     'Parallel',  false,        @islogical);     %parallel or linear mode? 
-addParameter(p,   'TextUpdate',  false,        @islogical);     %display progress of inner sampling loop to screen in linear mode? 
-addParameter(p,  'IncludeNaNs',  true,         @islogical);     %if a measurement blob includes NaNs or goes off the edge of the field, do we include it in the result? Useful for e.g. limited-area model runs; if set, output field can include partially-sampled blobs
+addParameter(p,      'Clobber',  false,        @islogical);     %overwrite previous output filess (assume no)
+addParameter(p,     'Parallel',  false,        @islogical);     %parallel or linear mode? (assumes single-threaded)
+addParameter(p,   'TextUpdate',  false,        @islogical);     %display progress of inner sampling loop to screen in linear mode? (no)
+addParameter(p,  'IncludeNaNs',  true,         @islogical);     %if a measurement blob includes NaNs or goes off the edge of the field, do we include it in the result? Useful for e.g. limited-area model runs; if set, output field can include partially-sampled blobs (yes)
+addParameter(p,   'GetSettings', false,        @islogical);     %just get the settings generated here and return it in the 'OldData' field
 
-%choices we need to make
-addParameter(p,   'ReportEvery', 10000, IsPositiveInteger);     %update to screen how often (in samples).
+%numeric values
+addParameter(p,   'ReportEvery', 10000, IsPositiveInteger);     %if TextUpdate is set, update to screen how often (in samples)?
 addParameter(p,       'MinPrs' ,     0,        IsPositive);     %minimum pressure level, i.e. top height. If set to zero, uses model top
 addParameter(p,       'MaxPrs' ,  1100,        IsPositive);     %maximum pressure level, i.e. bottom height.
-
-%data selection
 addParameter(p,       'SubSet',      0, IsPositiveInteger);     %which subfile within the specified day to work on - used e.g. for AIRS granule numbers
 addParameter(p,   'HoursAhead',      0,     IsNonNegative);     %if using forecast data, how many hours in advance?
 
-%passed-through data
+%passed-through data structures
 addParameter(p,     'OldData','NOTSET',          @isstruct);    %do we have a previously-used set of model interpolants in memory? 
 addParameter(p, 'Sensitivity','NOTSET',          @isstruct);    %parameters for sensitivity-testing mode
 
 %paths
 addParameter(p,'DensityPath',        './common/saber_density_filled.mat',@isfile); %path to density data
-addParameter(p, 'MasterPath', [LocalDataDir,'/corwin/sampling_project/'], @isdir); %path to density data
 addParameter(p,    'OutPath',                                   'NOTSET', @isdir); %output file. will be generated automatically below if set to 'NOTSET' or not supplied
  
-%arbitrary values used in the code. Most defaults have been selected via sensivity testing using 3D AIRS data.
+%arbitrary numbers used in the code. Most defaults have been selected via sensivity testing using 3D AIRS data.
 addParameter(p,    'MinSignal' ,  0.99,        IsPositive);     %fraction of total signal needed to produce final sample
 addParameter(p,    'BlobScale' ,     3,        IsPositive);     %number of standard deviations to compute sensitivity out to (+- from centre)
 addParameter(p,   'MinZContrib',  0.02,        IsPositive);     %when rotating, discard vertical levels contributing less fractional weight than this
@@ -89,10 +94,18 @@ addParameter(p,      'ZPadding',   0.5,        IsPositive);     %when rotating, 
 %%%%%%%%%%%%%%%%%%%%%%%
 
 parse(p,Instrument,ModelName,DayNumber,varargin{:});
-Settings = p.Results;
+Settings = p.Results; Settings.MasterPath = MasterPath; clear MasterPath
 
 %do some preprocessing based on the above
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%ignore the whole routine and just spit out the settings?
+if Settings.GetSettings == 1;
+  Error = 0;
+  OldData = Settings;
+  return
+end
+
 
 %is the observational dataset on the valid list?
 [~,InstList] = instrument_settings('JUSTLISTING',Settings);
@@ -149,9 +162,7 @@ end
 %where shall we put our results? 
 if strcmp(Settings.OutPath,'NOTSET')
   Settings.OutPath = [Settings.MasterPath,'/output/',Instrument,'/',ModelName,'/sampled_',num2str(DayNumber),SubSetOutString,ForecastOutString,'.mat'];
-
   %make sure this directory exists!
-  if exist([Settings.MasterPath,'/output/',Instrument              ],'dir') ~= 7; mkdir([Settings.MasterPath,'/output/',Instrument              ]); end
   if exist([Settings.MasterPath,'/output/',Instrument,'/',ModelName],'dir') ~= 7; mkdir([Settings.MasterPath,'/output/',Instrument,'/',ModelName]); end
 end
 
@@ -162,7 +173,7 @@ if exist(Settings.OutPath,'file') ~= 0 && Settings.Clobber == 0
   Error = 3; return;
 end
 
-%finally, store the time we started the analysis (especially useful for sensitivity testing!)
+%finally, store the time we started the analysis (especially useful for sensitivity testing)
 RunTime = struct();
 RunTime.Start = now;
 

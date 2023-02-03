@@ -1,22 +1,3 @@
-clearvars
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%manual setup instructions are in the first part of this script
-%once you've followed them, run this script to create the necessary paths
-%
-%Corwin Wright, c.wright@bath.ac.uk, 2022/10/13
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Instructions. READ THESE
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 %understanding the context
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -35,8 +16,8 @@ clearvars
 %your own OIFs/MIFs as needed. As long as they have consistent inputs and outputs with the existing ones they should work fine, I 
 %have added several over the years without needing to modify the base code
 %
-%  - for OIFs, just stick them in the 01CreateTracks directory, and add the fine-sampling properties (and naming convention for subdaily files, if appropriate) to the list in ./common/instrument_settings.m
-%  - for MIFs, stick them in ./common/models, but you also need to add their name and list of arguments to ./common/model_settings.m 
+%  - for OIFs, put them in the 01CreateTracks directory, and add the fine-sampling properties (and naming convention for subdaily files, if appropriate) to the list in ./common/instrument_settings.m
+%  - for MIFs, put them in ./common/models, and add their name and list of arguments to ./common/model_settings.m 
 %    so they can be called from the main sampling routine when needed.
 
 
@@ -50,7 +31,7 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %1. use the functions in ./01CreateTracks to create track-parameter files for your chosen instrument and period
-%2. in ./y, use 'wrapper.m' to process the data
+%2. use 'sampling_core_v2.m' to process the data
 %
 %for both sections, you will need to set various options - these options are always at the top of the programme, I 
 %never bury them further down
