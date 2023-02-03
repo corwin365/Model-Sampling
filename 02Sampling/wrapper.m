@@ -1,12 +1,12 @@
 
 
 %  %  %settings
-Models = {'ec_fc'};
+Models = {'era5'};
 Instruments = {'airs3d'};
-TimeScale = [datenum(2018,1,224:1:230)];
+TimeScale = [datenum(2007,1,2)];
 ForecastHours = 240;%[0:3:72,84:12:240];
 NoClobber = 1;
-Granules = [1,240];
+Granules = [1,1].*209;%[1,240];
 
 if ~exist('Granules'); Granules = 0; else Granules = Granules(1):1:Granules(2); end
 if ~exist('ForecastHours'); ForecastHours = 0;  end

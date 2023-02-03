@@ -11,10 +11,8 @@ function Model = load_cesm_ck(ObsGrid)
 %2. file not found
 
 
-%get core variables - needed for model data path
-CoreVars = sampling_core_variables;
-% CoreVars.CESM_CK.Path   = [LocalDataDir,'/CESM/'];
-CoreVars.CESM_CK.Path   = [LocalDataDir,'/corwin/issi/chris/'];
+% model data path
+ModelPath   = [LocalDataDir,'/corwin/issi/chris/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this input grid
@@ -39,11 +37,11 @@ for Time=First:Step:Last;
   
   %identify file
   [y,M,d,h,m,~] = datevec(Time);
-% %   FileName = [CoreVars.CESM_CK.Path, ...
+% %   FileName = [ModelPath, ...
 % %               'wrfout_d01_',sprintf('%04d',y),'-',sprintf('%02d',M),'-',sprintf('%02d',d), ...
 % %                         '_',sprintf('%02d',h),'-',sprintf('%02d',m),'-00.nc'];
                  
-  FileName = [CoreVars.CESM_CK.Path, ...
+  FileName = [ModelPath, ...
               'wrfout_d01_',sprintf('%04d',y),'-',sprintf('%02d',M),'-',sprintf('%02d',d), ...
                         '_',sprintf('%02d',h),'-',sprintf('%02d',m),'-00.mat'];
 %   FileName = 'C:\Data\corwin\issi\chris\wrfout_d01_2010-10-08_12-00-00.mat' %temporary override for local testing                           

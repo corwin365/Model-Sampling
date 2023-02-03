@@ -1,62 +1,76 @@
-function [Settings,SubSetOutString] = instrument_settings(Instrument,Settings,SubSet)
+function [Settings,InstList] = instrument_settings(Instrument,Settings)
 
-%specific handling options for each inout observational dataset
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%specific handling options for each observational dataset
+%
+%contains FineGrid settings for each instrument type, 
+%and formatting for calls to load subsets
+%
+%
 %Corwin Wright, c.wright@bath.ac.uk, 01/March/2019
+%heavily rewritten 03/February/2023
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-CoreVars = sampling_core_variables;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%produce a struct containing details of the models, the functions they are called by, and the fine grid settings for sampling that instrument
+%'JUSTLISTING' will be an override argument for just getting a list of possible datasets, so don't use this as a name!
+%
+%%finegrid settings chosen by sensitivity testing as described in WH2018, are ordered as [x,y,Prs], and have units:
+%  x: along-track km
+%  y: across-track km
+%Prs: decade of pressure
 
-%identify and load information about the instrument
-SubSetOutString = ''; %by default, no subsets.
-switch Instrument
-  case 'hirdls'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/HIRDLS/'];
-    Settings.ObsProperties.FileString = 'hirdls';
-    Settings.FineGrid                 = CoreVars.Hirdls.FineGrid;
-  case 'saber'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/SABER/'];
-    Settings.ObsProperties.FileString = 'saber';
-    Settings.FineGrid                 = CoreVars.Saber.FineGrid;
-  case 'cosmic'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/COSMIC/'];
-    Settings.ObsProperties.FileString = 'cosmic';
-    Settings.FineGrid                 = CoreVars.Cosmic.FineGrid;
-  case 'airs'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/AIRS/'];
-    Settings.ObsProperties.FileString = 'airs';
-    Settings.FineGrid                 = CoreVars.Airs.FineGrid;
-  case 'airs_qbo'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/AIRS_qbo/'];
-    Settings.ObsProperties.FileString = 'qbo_airs';
-    Settings.FineGrid                 = CoreVars.Airs.FineGrid;
-  case 'qboz'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/QBOZ/'];
-    Settings.ObsProperties.FileString = 'qbo_airs';
-    Settings.FineGrid                 = CoreVars.Airs.FineGrid;
-  case 'airs3d'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/AIRS_3D/'];
-    Settings.ObsProperties.FileString = 'airs3d';
-    Settings.FineGrid                 = CoreVars.Airs3D.FineGrid;
-    SubSetOutString                   = ['_g',sprintf('%03d',SubSet)];
-  case 'gisinger'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/gisinger/'];
-    Settings.ObsProperties.FileString = 'airs3d';
-    Settings.FineGrid                 = CoreVars.Airs3D.FineGrid;
-    SubSetOutString                   = ['_g',sprintf('%03d',SubSet)];
-  case 'airs_1d'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/AIRS_1D/'];
-    Settings.ObsProperties.FileString = 'airs1d';
-    Settings.FineGrid                 = CoreVars.Airs.FineGrid;
-  case 'cosmic_petr'
-    Settings.ObsProperties.Path       = [CoreVars.MasterPath,'/tracks/COSMICpetr/'];
-    Settings.ObsProperties.FileString = 'cosmic_petr';
-    Settings.FineGrid                 = CoreVars.Cosmic.FineGrid;    
-    SubSetOutString                   = ['_g',sprintf('%03d',SubSet)];
-  otherwise
-    disp('Instrument not on specified list. Stopping')
-    stop
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%needed for some of the below logic to work when called just to get an instrument list
+if nargin== 1; Settings = struct(); Settings.SubSet = ''; end
+
+%create the base struct, then we can start filling it
+InstInfo = struct;
+
+%COSMIC
+InstInfo.COSMIC.FineGrid = [10,0.5,1/80];
+
+%HIRDLS
+InstInfo.HIRDLS.FineGrid = [10,2,1/80];
+
+%SABER
+InstInfo.SABER.FineGrid = [10,2,1/80];
+
+%AIRS (2D)
+InstInfo.AIRS.FineGrid = [2,3,1/20];
+
+%AIRS (3D)
+InstInfo.AIRS3D.FineGrid = [1,1,1/20];
+InstInfo.AIRS3D.SubSetOutString = ['_g',sprintf('%03d',Settings.SubSet)];
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%process and return
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%get list of possible datasets
+InstList = fieldnames(InstInfo);
+
+if strcmp(Instrument,'JUSTLISTING')
+  %we just want a list of possible instruments - return
+  return
+else
+  % call up the data from the instrument we asked for
+  Fields = fieldnames(InstInfo.(Instrument));
+
+  for iF=1:1:numel(Fields)
+    Settings.(Fields{iF}) = InstInfo.(Instrument).(Fields{iF});
+  end; clear iF Fields
+
+  if ~isfield(Settings,'SubSetInString'); Settings.SubSetInString = ''; end  
+  return
 end
-
 
 
 end

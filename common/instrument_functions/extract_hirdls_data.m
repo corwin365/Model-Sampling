@@ -28,7 +28,7 @@ y   = sprintf('%04d',y);
 m   = sprintf('%02d',m);
 Day = sprintf('%03d',Day);
 
-DayFile = [DataDir,'/',y,'/',m,'/HIRDLS-Aura_L2_v07-00-20-c01_',y,'d',Day,'.he5'];
+DayFile = [DataDir,'/HIRDLS-Aura_L2_v07-00-20-c01_',y,'d',Day,'.he5'];
 clear Day y m
 
 %check if the file exists, and load it if so

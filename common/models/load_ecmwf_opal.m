@@ -13,9 +13,8 @@ function Model = load_ecmwf_opal(DayNumber)
 %1. date not in valid range
 %2. file not found
 
-%get core variables - needed for model data path
-CoreVars = sampling_core_variables;
-CoreVars.EcOpAl.Path   = [LocalDataDir,'/ECMWF/'];
+%model data path
+ModelPath  = [LocalDataDir,'/ECMWF/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day

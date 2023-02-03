@@ -11,7 +11,7 @@ Settings.Instrument = 'hirdls';
 Settings.InDir      = CoreVars.Hirdls.Path;
 Settings.OutDir     = [CoreVars.MasterPath,'/tracks/HIRDLS/'];
 Settings.PrsRange   = CoreVars.Hirdls.HeightRange; 
-Settings.TimeRange  = CoreVars.Hirdls.TimeRange;
+Settings.TimeRange  = [1,1].*datenum(2007,1,2);%CoreVars.Hirdls.TimeRange;
 
 for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   
@@ -31,6 +31,7 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   HirdlsData = extract_hirdls_data(iDay,Settings.InDir);
   if HirdlsData.Error ~= 0; 
     %problem getting data - skip
+    disp('Problem getting data')
     clear HirdlsData
     continue
   end
@@ -67,7 +68,7 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   %so, find the travel angle and then convert
   ViewAngleH = wrapTo180(360-((360-Azimuth)+180+47)); %degrees c/w from N
   warning off %warning constantly popping up about a future version change - supporess for now
-  ViewAngleH = repmat(ViewAngleH',1,size(Prs));
+  ViewAngleH = repmat(ViewAngleH',[1,size(Prs)]);
   warning on
   
   clear NextLat NextLon ThisLat ThisLon Azimuth BasisLevel Drift

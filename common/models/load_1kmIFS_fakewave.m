@@ -1,4 +1,4 @@
-function Model = load_1kmIFS(ObsGrid)
+function Model = load_1kmIFS_fakewave(ObsGrid)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -10,17 +10,21 @@ function Model = load_1kmIFS(ObsGrid)
 %0: success
 %2. file not found
 
-%get core variables - needed for model data path
-CoreVars = sampling_core_variables;
-CoreVars.OneKmIFS.Path   = [LocalDataDir,'/emily/1km_data'];
+%model data path
+ModelPath   = [LocalDataDir,'/emily/1km_data'];
 
 %time handling for filenames
 BasisTime = datenum(2018,11,1,0,0,0); %all other files are named in MINUTES offset from this
 FileStringA = 'ICMSHh3f7+';
 FileStringB = '_gg_interpGBA_TenthDeg_NH.nc';
 TimeStep    = 1./24./60.*180; %one every three hours
-%so, the files are named [CoreVars.OneKmIFS.Path,'/',FileStringA,sprintf('%06d',MINUTES),FileStringB]
+%so, the files are named [ModelPath,'/',FileStringA,sprintf('%06d',MINUTES),FileStringB]
 
+
+
+%fake wave properties
+Lambda = 35; %km
+Amplitude = 10; %K
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this input grid
@@ -49,7 +53,7 @@ clear FirstStep LastStep First Last t idx1 idx2
 for Step=Steps
 
   %identify file
-  FileName =  [CoreVars.OneKmIFS.Path,'/',FileStringA,sprintf('%06d',Step),FileStringB];
+  FileName =  'C:\Data\/emily/1km_data/ICMSHh3f7+000180_gg_interpGBA_TenthDeg_NH.nc';%[ModelPath,'/',FileStringA,sprintf('%06d',Step),FileStringB];
           
   %load file
   if ~exist(FileName,'file');
@@ -90,6 +94,30 @@ for Step=Steps
 end; 
 
 
+%replce the data with a fake plane wave
+disp('REPLACING DATA WITH FAKE WAVE')
+
+%make the wave
+x = -8000:1:8000;
+y = -8010:1:8010;
+[xi,yi] = meshgrid(x,y);
+A = Amplitude.*sin((1./Lambda).*xi.*(2*pi));
+
+
+%interpolate it onto the same grid as the model data
+[loni,lati] = meshgrid(AllData.Lon,AllData.Lat);
+[r,th] = distance(52,94,lati,loni);
+r = deg2km(r);
+xj = r.*cosd(th);
+yj = r.*sind(th);
+I = griddedInterpolant(xi',yi',A','linear','none');
+A2 = I(xj,yj);
+
+
+%heavily smooth the model to remove waves, then add the wave to it
+for iLev=1:1:137
+  AllData.T(:,:,iLev) = smoothn(squeeze(AllData.T(:,:,iLev)),[1,1].*71)+A2';
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

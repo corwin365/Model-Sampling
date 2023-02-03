@@ -13,9 +13,8 @@ function Model = load_um_issi(ObsGrid)
 %2. file not found
 
 
-%get core variables - needed for model data path
-CoreVars = sampling_core_variables;
-CoreVars.UM_ISSI.Path = [LocalDataDir,'/corwin/issi/annelize/'];
+%model path
+ModelPath = [LocalDataDir,'/corwin/issi/annelize/'];
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -44,7 +43,7 @@ for Time=First:Step:Last;
   
   %identify file
   [y,M,d,h,m,~] = datevec(Time);
-  FileName = [CoreVars.UM_ISSI.Path, ...
+  FileName = [ModelPath, ...
               '2pt5km_L242_AP_TP_', ...
               sprintf('%04d',y),sprintf('%02d',M),sprintf('%02d',d), ...
               'T',sprintf('%02d',h),sprintf('%02d',m),'_regular_grid.nc'];

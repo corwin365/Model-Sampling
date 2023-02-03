@@ -11,9 +11,8 @@ function Model = load_cfsr(DayNumber)
 %1. date not in valid range
 %2. file not found
 
-%get core variables - needed for model data path
-CoreVars = sampling_core_variables;
-CoreVars.CFSR.Path   = [LocalDataDir,'/CFSR/'];
+%model data path
+ModelPath   = [LocalDataDir,'/CFSR/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day
@@ -22,10 +21,10 @@ CoreVars.CFSR.Path   = [LocalDataDir,'/CFSR/'];
 %%CFSR file format:
 %6-hourly files, with T and p in seperate files
 [y1,m1,d1] = datevec(DayNumber);
-FilePath1 = [CoreVars.CFSR.Path,sprintf('%04d',y1),'/',sprintf('%02d',m1),'/'];
+FilePath1 = [ModelPath,sprintf('%04d',y1),'/',sprintf('%02d',m1),'/'];
 %also need the first timestep of the next day
 [y2,m2,d2] = datevec(DayNumber+1);
-FilePath2 = [CoreVars.CFSR.Path,sprintf('%04d',y2),'/',sprintf('%02d',m2),'/'];
+FilePath2 = [ModelPath,sprintf('%04d',y2),'/',sprintf('%02d',m2),'/'];
 
 for iFile=1:1:5;
   try

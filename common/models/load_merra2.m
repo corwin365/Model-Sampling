@@ -11,9 +11,8 @@ function Model = load_merra2(DayNumber)
 %1. date not in valid range
 %2. file not found
 
-%get core variables - needed for model data path
-CoreVars = sampling_core_variables;
-CoreVars.MERRA2.Path = [LocalDataDir,'/MERRA2/'];
+%model data path
+ModelPath = [LocalDataDir,'/MERRA2/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day
@@ -35,8 +34,8 @@ else               Version2 = 400;
 end
 
 
-FilePath1 = [CoreVars.MERRA2.Path,'/MERRA2_',num2str(Version1),'.inst3_3d_asm_Nv.',sprintf('%04d',y1),sprintf('%02d',m1),sprintf('%02d',d1),'.SUB.nc4'];
-FilePath2 = [CoreVars.MERRA2.Path,'/MERRA2_',num2str(Version2),'.inst3_3d_asm_Nv.',sprintf('%04d',y2),sprintf('%02d',m2),sprintf('%02d',d2),'.SUB.nc4'];
+FilePath1 = [ModelPath,'/MERRA2_',num2str(Version1),'.inst3_3d_asm_Nv.',sprintf('%04d',y1),sprintf('%02d',m1),sprintf('%02d',d1),'.SUB.nc4'];
+FilePath2 = [ModelPath,'/MERRA2_',num2str(Version2),'.inst3_3d_asm_Nv.',sprintf('%04d',y2),sprintf('%02d',m2),sprintf('%02d',d2),'.SUB.nc4'];
 
 
 if ~exist(FilePath1);

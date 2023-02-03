@@ -18,8 +18,8 @@ Settings.InDataDir = [CoreVars.MasterPath,'/samples/'];
 Settings.OutDataDir = [CoreVars.MasterPath,'/reconstructed/'];
 
 %instrument
-Instruments = {'SABER'};%{'COSMIC','HIRDLS','SABER'};
-Models      = {'EC_FC'};%{'CFSR','JRA55','JRA55C','ERAI','MERRA2','ERA5'};
+Instruments = {'HIRDLS'};%{'COSMIC','HIRDLS','SABER'};
+Models      = {'ERA5'};%{'CFSR','JRA55','JRA55C','ERAI','MERRA2','ERA5'};
 
 for iInst=1:1:numel(Instruments)
 for iModel=1:1:numel(Models);  
@@ -40,16 +40,16 @@ FileList = wildcardsearch(Settings.DataDir,'*.mat');
 warning on
 
 %loop over files
-parfor iFile=1:1:numel(FileList);
+for iFile=1:1:numel(FileList);
   try
   InFile = FileList{iFile};
   
   OutFile = strfind(InFile, 'sampled_');
   OutFile = [Settings.OutDataDir,'/',Settings.Instrument,'/',Settings.Model,'/',InFile(OutFile:end)];
-  if exist(OutFile,'file') ~= 0; 
-%     disp([OutFile,' already done']);
-    continue
-  end
+%   if exist(OutFile,'file') ~= 0; 
+% %     disp([OutFile,' already done']);
+%     continue
+%   end
   
 %    disp([OutFile,' started']);
 

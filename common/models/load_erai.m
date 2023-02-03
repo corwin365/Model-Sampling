@@ -13,18 +13,13 @@ function Model = load_erai(DayNumber)
 %1. date not in valid range
 %2. file not found
 
-%get core variables - needed for model data path
-CoreVars = sampling_core_variables;
-CoreVars.ERAi.Path   = [LocalDataDir,'/ERAi/'];
-CoreVars.ERAI.Path   = [LocalDataDir,'/ERAi/'];
+%model data path
+Settings.DataDir   = [LocalDataDir,'/ERAi/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%ERAi file format:
-%monthly files, with p based on a standard grid
-Settings.DataDir    = CoreVars.ERAI.Path;
 
 %load the appropriate files
 [y,m,~] = datevec(DayNumber);

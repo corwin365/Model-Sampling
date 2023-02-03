@@ -37,7 +37,7 @@ ModelInfo.ecmwf_issi.Arguments = 'ObsGrid';
 
 %ERA5 reanalysis
 ModelInfo.era5.FuncName  = 'load_era5';
-ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs';
+ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs';
 
 %ERA-Interim reanalysis
 ModelInfo.erai.FuncName  = 'load_erai';
@@ -62,10 +62,6 @@ ModelInfo.jra55c.Arguments = 'DayNumber';
 %MERRA2 reanalysis
 ModelInfo.merra2.FuncName  = 'load_merra2';
 ModelInfo.merra2.Arguments = 'DayNumber';
-
-%Unified Model forecasts
-ModelInfo.um_fc.FuncName  = 'load_um_forecast';
-ModelInfo.um_fc.Arguments = 'DayNumber,ObsGrid';
 
 %UM runs produced by Annelize for ISSI 2019
 ModelInfo.um_issi.FuncName  = 'load_um_issi';

@@ -11,12 +11,8 @@ function Model = load_jra55(DayNumber)
 %1. date not in valid range
 %2. file not found
 
-%get core variables - needed for model data path
-CoreVars = sampling_core_variables;
-CoreVars.JRA55.Path  = [LocalDataDir,'/JRA55/'];
-
 %settings
-Settings.DataDir = CoreVars.JRA55.Path;
+Settings.DataDir =  [LocalDataDir,'/JRA55/'];
 Settings.DateFormat = 'mm/dd/yyyy (HH:MM)';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
