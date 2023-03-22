@@ -73,7 +73,7 @@ for iJob = 1:1:numel(Jobs.OutPaths)
   %create script header
   Script = "#!/bin/bash";
   
-  Script(end+1) = "#SBATCH --account=bm1233";                %account name for budget. CHANGE THIS.
+  Script(end+1) = "#SBATCH --account=xxxxxx";                %account name for budget. CHANGE THIS.
   Script(end+1) = "#SBATCH --job-name="+Jobs.Names{iJob};    %name of job. Generated automatically.
   Script(end+1) = "#SBATCH --output=myjob.out";              %standard (text) output file. May need changing
   Script(end+1) = "#SBATCH --error=myjob.err";               %standard (text) error file. May need changing
