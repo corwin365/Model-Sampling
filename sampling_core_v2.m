@@ -351,7 +351,7 @@ if Settings.SensTestMode ~= 0
     return;
   end
  
-  OutPath = [Settings.MasterPath,Sensitivity.NewPath]; 
+  Settings.OutPath = [Settings.MasterPath,Sensitivity.NewPath]; 
 
 end
 
