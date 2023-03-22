@@ -67,6 +67,10 @@ ModelInfo.merra2.Arguments = 'DayNumber';
 ModelInfo.um_issi.FuncName  = 'load_um_issi';
 ModelInfo.um_issi.Arguments = 'ObsGrid';
 
+%DYAMOND-WINTER 5km UM runs
+ModelInfo.dyamond_um5k.FuncName  = 'load_dyamond_um5ktest';
+ModelInfo.dyamond_um5k.Arguments = 'ObsGrid';
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OK, call the model data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

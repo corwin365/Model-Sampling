@@ -21,9 +21,9 @@ Settings.InDir = [LocalDataDir,'/AIRS/3d_airs'];
 %geolocation - which data should we include?
 %for all except HeightRange, we include any wholegranule including these
 %for HeightRange, we will trim the granules in height to just this range
-Settings.LatRange    = [0,90];
-Settings.LonRange    = [0,180];
-Settings.TimeRange   = datenum(2018,11,2);
+Settings.LatRange    = [-90,90];
+Settings.LonRange    = [-180,180];
+Settings.TimeRange   = datenum(2020,1,24);
 Settings.HeightRange = [15,70]; %km
 
 %path handling internal to routine
@@ -56,6 +56,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
 
   List = find_airs_overpasses([1,1].*iDay,Settings.LonRange,Settings.LatRange,[0,0],1);
   List = List(:,2);
+
 
   %loop over them
   for jGranule=1:1:numel(List);
@@ -198,7 +199,6 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     
     %smooth over minor jumps caused by finite precision on the geolocation
     ViewAngleH = smoothn(ViewAngleH,[5,5,1]);
-    
     clear LatScale LonScale NextLat NextLon Azimuth
 
     %the  horizontal weighting functions are approximately...
@@ -210,6 +210,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     [latmean,~] = meanm(Data.l1_lat(:),Data.l1_lon(:));
     RNight = airs_resolution(1,dayno,latmean,squeeze(Data.ret_z(1,1,:)))./(2.*2.355);
     RDay   = airs_resolution(0,dayno,latmean,squeeze(Data.ret_z(1,1,:)))./(2.*2.355);
+    
     IsDay =  which_airs_retrieval(Data.l1_lon(:),Data.l1_lat(:),Data.l1_time(:));
     Weight.Z = Weight.X.*NaN;
     Weight.Z(IsDay == 1) = abs(interp1(squeeze(Data.ret_z(1,1,:)),  RDay,Data.ret_z(IsDay == 1))); 

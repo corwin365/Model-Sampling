@@ -22,7 +22,7 @@ Settings.InDir = [LocalDataDir,'/COSMIC/daily_atmPrf'];
 %for HeightRange, we will trim the granules in height to just this range
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.TimeRange   = datenum(2010,1,[2,3]);
+Settings.TimeRange   = datenum(2020,1,24);
 Settings.HeightRange = [0,50]; %km
 
 %path handling internal to routine
@@ -41,16 +41,16 @@ clear CoreSettings
 %COSMIC files have a massive number of levels, but in the stratosphere
 %resolution is 1.5km due to optics. so, to save sampling time, 
 %interpolate to constant height scale
-%we'll use a 1/16 decade scale (about 1km) - this is still oversampled relative
+%we'll use a 1/32 decade scale (about 0.5km) - this is still oversampled relative
 %to resolution
-Settings.LogPSpacing = 1/16;
+Settings.LogPSpacing = 1/32;
 
 %COSMIC data can be pretty NaNny for methodological reasons
 %maximum frac of NaNs in profile:
 Settings.MaxNaNFrac = 0.75;%
 
-for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
-  
+for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
+
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %generate file name
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
@@ -103,10 +103,11 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
       %remove NaNs, and skip profile if above a cutoff fraction
       Good = find(~isnan(x+v) > 0);
       Frac = numel(Good)./numel(x);
-      if Frac < Settings.MaxNaNFrac; continue; end
+      if Frac < Settings.MaxNaNFrac | numel(Good) < 2;     continue; end
       x = x(Good); v = v(Good);
 
-      Grid(:,iProfile) = interp1(double(x),v,PrsScale);
+
+      Grid(:,iProfile) = interp1(x,v,PrsScale);
      
     end
 
@@ -147,7 +148,6 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
   T    = Profs.T';
   ViewAngleH = Profs.Az';
   Prs  = Profs.Prs';
-% % %   QC   = Profs.QC';
   
   %viewing angle from above isn't terribly meaningful for COSMIC
   %so set it to zero
@@ -209,6 +209,7 @@ for iDay=Settings.TimeRange(1):1:Settings.TimeRange(2);
 
   %and save it
   save(DayFile,'Track','Recon','Weight');
+  
   
   
   

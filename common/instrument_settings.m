@@ -39,8 +39,8 @@ InstInfo.COSMIC.FineGrid = [10,0.5,1/80];
 %HIRDLS
 InstInfo.HIRDLS.FineGrid = [10,2,1/80];
 
-%SABER
-InstInfo.SABER.FineGrid = [10,2,1/80];
+% % % % %SABER
+% % % % InstInfo.SABER.FineGrid = [10,2,1/80];
 
 %AIRS (2D)
 InstInfo.AIRS.FineGrid = [2,3,1/20];

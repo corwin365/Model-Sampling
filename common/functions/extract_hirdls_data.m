@@ -1,7 +1,7 @@
 function HirdlsData = extract_hirdls_data(MatlabDay,DataDir)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%extract COSMIC data for a given day
+%extract HIRDLS data for a given day
 %
 %Corwin Wright, corwin.wright@trinity.oxon.org
 %08/Jan/2018

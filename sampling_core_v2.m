@@ -66,23 +66,23 @@ addParameter(p, 'SensTestMode',  false,        @islogical);     %use sensitivity
 addParameter(p,      'Clobber',  false,        @islogical);     %overwrite previous output filess (assume no)
 addParameter(p,     'Parallel',  false,        @islogical);     %parallel or linear mode? (assumes single-threaded)
 addParameter(p,   'TextUpdate',  false,        @islogical);     %display progress of inner sampling loop to screen in linear mode? (no)
-addParameter(p,  'IncludeNaNs',  true,         @islogical);     %if a measurement blob includes NaNs or goes off the edge of the field, do we include it in the result? Useful for e.g. limited-area model runs; if set, output field can include partially-sampled blobs (yes)
-addParameter(p,   'GetSettings', false,        @islogical);     %just get the settings generated here and return it in the 'OldData' field
+addParameter(p,  'IncludeNaNs',   true,        @islogical);     %if a measurement blob includes NaNs or goes off the edge of the field, do we include it in the result? Useful for e.g. limited-area model runs; if set, output field can include partially-sampled blobs (yes)
+addParameter(p,  'GetSettings',  false,        @islogical);     %just get the settings generated here and return it in the 'OldData' field
 
 %numeric values
-addParameter(p,   'ReportEvery', 10000, IsPositiveInteger);     %if TextUpdate is set, update to screen how often (in samples)?
-addParameter(p,       'MinPrs' ,     0,        IsPositive);     %minimum pressure level, i.e. top height. If set to zero, uses model top
-addParameter(p,       'MaxPrs' ,  1100,        IsPositive);     %maximum pressure level, i.e. bottom height.
-addParameter(p,       'SubSet',      0, IsPositiveInteger);     %which subfile within the specified day to work on - used e.g. for AIRS granule numbers
-addParameter(p,   'HoursAhead',      0,     IsNonNegative);     %if using forecast data, how many hours in advance?
+addParameter(p,  'ReportEvery',  10000,  IsPositiveInteger);     %if TextUpdate is set, update to screen how often (in samples)?
+addParameter(p,      'MinPrs' ,      0,         IsPositive);     %minimum pressure level, i.e. top height. If set to zero, uses model top
+addParameter(p,      'MaxPrs' ,   1100,         IsPositive);     %maximum pressure level, i.e. bottom height.
+addParameter(p,       'SubSet',      0,  IsPositiveInteger);     %which subfile within the specified day to work on - used e.g. for AIRS granule numbers
+addParameter(p,   'HoursAhead',      0,      IsNonNegative);     %if using forecast data, how many hours in advance?
 
 %passed-through data structures
 addParameter(p,     'OldData','NOTSET',          @isstruct);    %do we have a previously-used set of model interpolants in memory? 
 addParameter(p, 'Sensitivity','NOTSET',          @isstruct);    %parameters for sensitivity-testing mode
 
 %paths
-addParameter(p,'DensityPath',        './common/saber_density_filled.mat',@isfile); %path to density data
-addParameter(p,    'OutPath',                                   'NOTSET', @isdir); %output file. will be generated automatically below if set to 'NOTSET' or not supplied
+addParameter(p,'DensityPath','./common/saber_density_filled.mat',@isfile); %path to density data
+addParameter(p,    'OutPath',                          'NOTSET', @isdir ); %output file. will be generated automatically below if set to 'NOTSET' or not supplied
  
 %arbitrary numbers used in the code. Most defaults have been selected via sensivity testing using 3D AIRS data.
 addParameter(p,    'MinSignal' ,  0.99,        IsPositive);     %fraction of total signal needed to produce final sample
@@ -105,7 +105,6 @@ if Settings.GetSettings == 1;
   OldData = Settings;
   return
 end
-
 
 %is the observational dataset on the valid list?
 [~,InstList] = instrument_settings('JUSTLISTING',Settings);
@@ -154,10 +153,7 @@ end
 if ischar(Settings.OldData); clear OldData; OldData.ModelID = ''; end
 
 %are we including partial blobs that contain NaNs in their volume?
-if Settings.IncludeNaNs ~=1;
-  disp('Blobs containing any NaNs will be set to NaN');
-end
-
+if Settings.IncludeNaNs ~=1;  disp('Blobs containing any NaNs will be set to NaN');end
 
 %where shall we put our results? 
 if strcmp(Settings.OutPath,'NOTSET')
@@ -165,7 +161,6 @@ if strcmp(Settings.OutPath,'NOTSET')
   %make sure this directory exists!
   if exist([Settings.MasterPath,'/output/',Instrument,'/',ModelName],'dir') ~= 7; mkdir([Settings.MasterPath,'/output/',Instrument,'/',ModelName]); end
 end
-
 
 %check if we've already done this day
 if exist(Settings.OutPath,'file') ~= 0 && Settings.Clobber == 0
@@ -186,7 +181,7 @@ clear IsPositive IsPositiveInteger IsNonNegative p varargin InstList ModelList
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %get instrument options
-%this includes the FineGrid spacings needed below, and the SubetInStrings needed to load multiple-file-per-day datasets
+%this includes the FineGrid spacings needed below, and the SubsetInStrings needed to load multiple-file-per-day datasets
 Settings = instrument_settings(Instrument,Settings);
 
 %now identify the file containing the daily grid
@@ -198,7 +193,8 @@ catch;  %failed.
   disp(['Cannot locate file containing observational track: ',ObsGrid]);
   Error = 1; return
 end
-%convert obs grid to log space, to make spacings more regular
+
+%convert obs pressure grid to log space, to make spacings more regular
 ObsGrid.Track.Prs = log10(ObsGrid.Track.Prs);
   
 disp([Instrument,' track loaded for ',datestr(DayNumber)]);
@@ -208,7 +204,7 @@ disp([Instrument,' track loaded for ',datestr(DayNumber)]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %identify and load the model
-%file conventions vary massively, so load the data inside the switch
+%file conventions vary massively, so load the data inside the child function
 %child functions will format the data into a single standard
 %child output format:
 %  struct called Model
@@ -249,7 +245,7 @@ else
   Model.Prs = log10(Model.Prs);
   
   %drop parts of the atmosphere that we don't care about
-  InPrsRange = find(Model.Prs <= log10(Settings.MaxPrs));
+  InPrsRange = find(Model.Prs <= log10(Settings.MaxPrs) & Model.Prs >= log10(Settings.MinPrs));
   Model.Prs = Model.Prs(InPrsRange);
   Model.T   = Model.T(:,:,:,InPrsRange);
   clear InPrsRange
@@ -260,7 +256,7 @@ else
     Model.T   = flip(Model.T,  4);
   end
   
-  %%finally, produce gridded interpolant fields for each timestep
+  %produce gridded interpolant fields for each timestep
   [x,y,z] = ndgrid(Model.Lon,Model.Lat,Model.Prs);
   Interpolants = struct();
   for iTime=1:1:numel(Model.Time)
@@ -356,7 +352,6 @@ if Settings.SensTestMode ~= 0
   end
  
   OutPath = [Settings.MasterPath,Sensitivity.NewPath]; 
-  Settings.DensityPath = Sensitivity.DensityPath; %we might be running it from a different directory
 
 end
 
@@ -377,7 +372,7 @@ else
   Density = []; %not used, don't waste time making it
 end
 
-%2. create a results array and an array for the 'naive' approximation where we just sample the model at measurement centre
+%2. create a results array and an array for the naive approximation where we just sample the model at measurement centre
 FinalT = ObsGrid.Track.Lon.*NaN; 
 SimpleT = FinalT;
 
@@ -394,7 +389,7 @@ if Settings.Parallel == 0;
     [~,FinalT(iSample),SimpleT(iSample)] = innercore(iSample,ObsGrid,Interpolants,Settings,Density); 
   end
 elseif Settings.Parallel == 1; 
-  %parfor loop. Often much faster, but needs more memory so won't work for large datasets.
+  %parfor loop. Usually much faster, but needs more memory so won't work for large datasets.
   disp('Using parallelised mode')
   parfor iSample = 1:numel(FinalT);
     [~,FinalT(iSample),SimpleT(iSample)] = innercore(iSample,ObsGrid,Interpolants,Settings,Density);
@@ -518,7 +513,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   Sample = struct();
   Sample.Lon     = ObsGrid.Track.Lon(       iSample);
   Sample.Lat     = ObsGrid.Track.Lat(       iSample);
-  Sample.Prs     = ObsGrid.Track.Prs(       iSample); %remember, we already log-ged this
+  Sample.Prs     = ObsGrid.Track.Prs(       iSample); %remember, we already log10-ed this
   Sample.Time    = ObsGrid.Track.Time(      iSample);
   
   Sample.AngleH  = ObsGrid.Track.ViewAngleH(iSample);
@@ -544,7 +539,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %produce the fine sampling grid
-  %this is the grid the actual sampling will be done
+  %this is the grid the actual sampling will be done on
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   %declare a struct to keep the grids in
@@ -559,8 +554,8 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   %for the vertical, we're working in pressure co-ordinates, so this is fiddly
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-  %tmost instruments are a simple Gaussian in height
-  %these have *POSITIVE* Sample.WeightZ values
+  %most instruments are a simple Gaussian in height
+  %these are specified in the track generator functions as having *POSITIVE* Sample.WeightZ values
   %so create a height window accordingly
   if Sample.WeightZ >= 0
     %first, find approx height of the measurement-centre pressure level
@@ -571,7 +566,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   else
     %some instruments are more complex than just a simple Gaussian
     %these are specified with a *NEGATIVE* Sample.WeightZ
-    %this |number| tells us which of a pre-defined set of functions to use
+    %the (integer) values of this tells us which of a pre-defined set of functions to use
     %from those stored in the source file
     
     %identify which channel we want.
@@ -582,7 +577,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
     Channel.W   = ObsGrid.Weight.ZFuncs.Weights(Channel.ID,:); %keep for later  
 
     %discard parts that contribute very little
-    Channel.W(Channel.W < Settings.MinZContrib.*sum(Channel.W(:)),'omitnan') = 0; %less than 2% is a good balance of useful volume and runtime (tested for AIRS 42km)
+    Channel.W(Channel.W < Settings.MinZContrib.*sum(Channel.W(:)),'omitnan') = 0;
 
     %set NaNs to zero
     Channel.W(isnan(Channel.W)) = 0;
@@ -596,6 +591,8 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
     z = Channel.Prs(find(Channel.W > 0));
     z = [max(z),min(z)]+[1,-1].*Settings.ZPadding;
   end
+
+  %hence:
   Fine.Prs = single(z(2):Settings.FineGrid(3):z(1));
 
 
@@ -614,6 +611,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   if Sample.WeightX > 0  %simple Gaussian approximation
     Wx = normpdf(Fine.X,0,Sample.WeightX);
   else %not a simple Gaussian - produce from supplied information
+    disp('Attempting to use fixed cross-track weighting function but code is not set up to handle this, yet stopping')
     stop %not written yet, as no such cases implemented
   end  
   
@@ -623,6 +621,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   if Sample.WeightY > 0  %simple Gaussian approximation
     Wy = normpdf(Fine.Y,0,Sample.WeightY);
   else %not a simple Gaussian - produce from supplied information
+    disp('Attempting to use fixed along-track weighting function but code is not set up to handle this yet, stopping')
     stop %not written yet, as no such cases implemented 
   end  
 
@@ -637,7 +636,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   end  
   
   %multiply them together to create a 3D blob
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   %order of indexing will seem odd if you're unfamiliar with Matlab
   %don't blame me...
@@ -646,16 +645,15 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   Wz = repmat(permute(Wz',[2,3,1]),numel(Fine.X),numel(Fine.Y),1); 
   W = Wx.*Wy.*Wz;
   [Fine.Y,Fine.X,Fine.Prs] = meshgrid(Fine.Y,Fine.X,Fine.Prs);
-  
-  
+
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %cut data down to reduce interpolation requirements
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
 
-  %right, now we want to choose the minimum number of points that will give us
-  %our required weight.
-  %this is a time bottleneck in our routine here, but is saving time overall
-  %because it reduces the points done in all subsequent steps
+  %we want to choose the minimum number of points that will give us our 
+  %required weight.
+  %this is a local time bottleneck in our routine, but is saving time overall
+  %because it reduces the number of points computed in all subsequent steps
   
   %first, sort the weight points
   [WSort,Widx]  = sort(W(:),'descend');
@@ -708,15 +706,15 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   if Sample.AngleZ ~= 0
     
     
-    %this is more complex. 
+    %Z rotations are more complex than horizontal-plane ones.
     %we have to:
-    %1. shift to centre on z=0, to avoid awkward shift terms in the rotation
+    %1. shift to centre on z=0, to avoid awkward translational terms in the rotation
     %2. carry out the rotation
     %3. undo the shift
     %4. correct for density
     %angles are defined a/c/w from nadir
     
-    %extract correct day of density
+    %extract correct dayof-year of density
     [~,dayidx] = min(abs(Density.DayScale-Sample.Time));
     D = Density.Density(dayidx,:);    
      
@@ -756,7 +754,8 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
     Rescale = interp1(Density.Prs,D,Fine.Prs);
     W = W ./ Unscale .* Rescale;
 
-    %renormalise
+    %this has messed up the absolute, but not relative weights
+    %so we need to renormalise the distribution
     W = W./sum(W(:),'omitnan');
     
     %done!
@@ -789,7 +788,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   %interpolate temperature onto the selected points
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   
-  %ok, we're there! choose the right interpolant object
+  %ok, we're there! choose the right interpolant object for the chosen time
   [~,idx] = min(abs(Sample.Time-Interpolants.Time));
   I = Interpolants.(['t',num2str(idx)]);
   
@@ -803,7 +802,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
     TSample = sum(flatten(Fine.T).*flatten(W));
   end
   
-  %also compute simple T at measurement centre
+  %also compute simple T at measurement centre, for comparison purposes
   TSimple = I(single(Sample.Lon),single(Sample.Lat),single(Sample.Prs));
 
   %success!
@@ -847,11 +846,10 @@ for iDim=1:1:NDims; OutputSize(iDim) = max(ObsGrid.Recon.(DimList{iDim}));end; c
 %order list of dimensions from largest number of elements to smallest (arbitrary, but I want something stable)
 [OutputSize,idx] = sort(OutputSize,'desc');DimList = DimList(idx); clear idx
 
-
 %work out where each data point goes
 List = ObsGrid.Recon.(DimList{1});
 for iDim=2:1:NDims;  List = [List,ObsGrid.Recon.(DimList{iDim})]; end; clear iDim
-[~,Order]  = sortrows(List,NDims:-1:1);
+[~,Order] = sortrows(List,NDims:-1:1);
 
 %reshape the metadata
 Output = struct();
