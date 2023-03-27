@@ -37,7 +37,7 @@ ModelInfo.ecmwf_issi.Arguments = 'ObsGrid';
 
 %ERA5 reanalysis
 ModelInfo.era5.FuncName  = 'load_era5';
-ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs';
+ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs,Settings.TallMode';
 
 %ERA-Interim reanalysis
 ModelInfo.erai.FuncName  = 'load_erai';
@@ -70,6 +70,12 @@ ModelInfo.um_issi.Arguments = 'ObsGrid';
 %DYAMOND-WINTER 5km UM runs
 ModelInfo.dyamond_um5k.FuncName  = 'load_dyamond_um5ktest';
 ModelInfo.dyamond_um5k.Arguments = 'ObsGrid';
+
+%DYAMOND-WINTER 2km ICON NWP run
+ModelInfo.dyamond_icon2km.FuncName  = 'load_dyamond_common';
+ModelInfo.dyamond_icon2km.Arguments = 'ObsGrid,WantedModel';
+WantedModel = 'icon2km';
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OK, call the model data
