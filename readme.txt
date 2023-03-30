@@ -1,39 +1,31 @@
+ Understanding the context 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+ 
+ For an explanation of what's going on see Wright and Hindley, ACP 2018, doi: 10.5194/acp-18-13703-2018   
+ 
+ In terms of Figure A1 of that paper:  
+   - the contents of './common/models/' are the "Model Import Functions" (MIFs)   
+   - the contents of './01CreateTracks/' are the 'Observation Import Functions' (OIFs)   
+   - sampling_core_v2.m is the "Core Analysis"   
+   - the contents of './common/' are functions used in the above    
+   
+It should probably go without saying that you need to be using input data (model and obs) in exactly the same format I used when I wrote the relevant functions. If you don't have this, either ask me to tell you what it was, or write your own OIFs/MIFs as needed. As long as they have consistent inputs and outputs with the existing ones they should work fine, I  have added several over the years without needing to modify the base code   
 
-%understanding the context
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ - for OIFs, put them in the 01CreateTracks directory, and add the fine-sampling properties (and naming convention for subdaily files, if appropriate) to the list in ./common/instrument_settings.m   
+ - for MIFs, put them in ./common/models, and add their name and list of arguments to ./common/model_settings.m, so they can be called from the main sampling routine when needed.
 
-%For an explanation of what's going on see Wright and Hindley, ACP 2018, doi: 10.5194/acp-18-13703-2018
-%
-% in terms of Figure A1 of that paper:
-%  - the contents of './common/models/' are the "Model Import Functions" (MIFs)
-%  - the contents of './01CreateTracks/' are the 'Observation Import Functions' (OIFs)
-%  - sampling_core_v2.m is the "Core Analysis"
-%  - the contents of './common/' are functions used in the above 
-%
-%
-%It should probably go without saying that you need to be using input data (model and obs) in exactly the same
-%format I used when I wrote the relevant functions. If you don't have this, either ask me to tell you what it was, or write
-%your own OIFs/MIFs as needed. As long as they have consistent inputs and outputs with the existing ones they should work fine, I 
-%have added several over the years without needing to modify the base code
-%
-%  - for OIFs, put them in the 01CreateTracks directory, and add the fine-sampling properties (and naming convention for subdaily files, if appropriate) to the list in ./common/instrument_settings.m
-%  - for MIFs, put them in ./common/models, and add their name and list of arguments to ./common/model_settings.m 
-%    so they can be called from the main sampling routine when needed.
-
-
-%How to get it working:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ How to get it working: 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 [[to write]]
 
-
-%What you need to do to run it:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%1. use the functions in ./01CreateTracks to create track-parameter files for your chosen instrument and period
-%2. use 'sampling_core_v2.m' to process the data
-%
-%for both sections, you will need to set various options - these options are always at the top of the programme, I 
-%never bury them further down
+ What you need to do to run it: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+ 1. use the functions in ./01CreateTracks to create track-parameter files for your chosen instrument and period 
+ 
+ 2. use 'sampling_core_v2.m' to process the data  for both sections, you will need to set various options - these options are all at the top of the programme
+ 
+ 3. Get the results out of the MasterPath directory specified in 'sampling_core_v2'
 
 
