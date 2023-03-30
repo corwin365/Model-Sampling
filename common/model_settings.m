@@ -19,6 +19,10 @@ function [Model,OldData,Settings] = model_settings(DayNumber,ModelType,Settings,
 %create the base struct, then we can start filling it
 ModelInfo = struct;
 
+%regular gridded models. These can use either gridded or
+%scattered interpolants, so we don't need to check this
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %CESM data produced by Chris Kruse for ISSI 2019
 ModelInfo.cesm_ck.FuncName  = 'load_cesm_ck';
 ModelInfo.cesm_ck.Arguments = 'ObsGrid';
@@ -37,7 +41,7 @@ ModelInfo.ecmwf_issi.Arguments = 'ObsGrid';
 
 %ERA5 reanalysis
 ModelInfo.era5.FuncName  = 'load_era5';
-ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs,Settings.TallMode';
+ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs';
 
 %ERA-Interim reanalysis
 ModelInfo.erai.FuncName  = 'load_erai';
@@ -71,10 +75,21 @@ ModelInfo.um_issi.Arguments = 'ObsGrid';
 ModelInfo.dyamond_um5k.FuncName  = 'load_dyamond_um5ktest';
 ModelInfo.dyamond_um5k.Arguments = 'ObsGrid';
 
-%DYAMOND-WINTER 2km ICON NWP run
-ModelInfo.dyamond_icon2km.FuncName  = 'load_dyamond_common';
-ModelInfo.dyamond_icon2km.Arguments = 'ObsGrid,WantedModel';
-WantedModel = 'icon2km';
+%DYAMOND-WINTER 5km ICON run
+ModelInfo.dyamond_icon5km.FuncName  = 'load_dyamond_common';
+ModelInfo.dyamond_icon5km.Arguments = 'ObsGrid,WantedModel';
+ModelInfo.dyamond_icon5km.WantedModel = 'icon5km';
+
+%models that load as lists of points rather than as grids
+%these can only be used with the ScatteredInt flag set
+%upstream, so check this later
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%DYAMOND-WINTER 5km ICON run, scattered data
+ModelInfo.dyamond_icon5km_scat.FuncName  = 'load_dyamond_common_scattered';
+ModelInfo.dyamond_icon5km_scat.Arguments = 'ObsGrid,WantedModel';
+WantedModel = 'icon5km';
+ModelInfo.ScatteredFlag = 1;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -83,21 +98,49 @@ WantedModel = 'icon2km';
 
 
 if strcmp(ModelType,'JUSTLISTING')
+
   %we just want a list of possible models - return this as the output
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   Model = fieldnames(ModelInfo);
   return
+
 else
+
   %otherwise, call up the data from the model we asked for
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  %if we're using a scattered-output model, check we set the necessary flag
+  if isfield(ModelInfo.(ModelType),'ScatteredFlag')
+    if ModelInfo.(ModelType).ScatteredFlag == 1
+      if Settings.ScatteredInt ~= 1;
+        disp('Chosen model loads as a list of points rather than a grid')
+        disp('''ScatteredInt'' flag must be set to true in main call to use this model')
+        disp('Stopping')
+        stop
+      end
+    end
+  end
+
+  %do the call
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
   %one day I intend to write this without the 'eval' statement (I started below but got stuck),
   %but right now I'm tight for time. One day...
-
-  %generate the eval() statement...
+  
+  %select model
   TheModel = ModelInfo.(ModelType);
-  TheCall = ['Model = ',TheModel.FuncName,'(',TheModel.Arguments,');'];
 
-  %...and run it
+  %identify specific model for functions that handle multiple models
+  if isfield(TheModel,'WantedModel'); WantedModel = TheModel.WantedModel; end  
+
+  %generate the eval() statement
+  TheCall = ['Model = ',TheModel.FuncName,'(',TheModel.Arguments,');'];
+  
+  %...and make the call
   eval(TheCall);
 
+
+  %commented bit below is a partial first attempt at a non-eval()-based call
   % % % %   %create a function handle for
   % % % %   FunctionHandle = str2func(TheModel.FuncName);
   % % % %

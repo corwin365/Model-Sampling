@@ -19,6 +19,7 @@ function [Error,OldData] = sampling_core_v2(Instrument,ModelName,DayNumber,varar
 %4. sensitivity testing, and output path not set
 %5. instrument not supported
 %6. model not supported
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -68,6 +69,7 @@ addParameter(p,     'Parallel',  false,        @islogical);     %parallel or lin
 addParameter(p,   'TextUpdate',  false,        @islogical);     %display progress of inner sampling loop to screen in linear mode? (no)
 addParameter(p,  'IncludeNaNs',   true,        @islogical);     %if a measurement blob includes NaNs or goes off the edge of the field, do we include it in the result? Useful for e.g. limited-area model runs; if set, output field can include partially-sampled blobs (yes)
 addParameter(p,  'GetSettings',  false,        @islogical);     %just get the settings generated here and return it in the 'OldData' field
+addParameter(p, 'ScatteredInt',  false,        @islogical);     %use for model data not on a regular lon/lat/prs/t grid. This takes MUCH longer, so don't do it unnecessarily, but can save memory for irregularly-gridded models and may be slightly more accurate for such models.
 
 %numeric values
 addParameter(p,  'ReportEvery',  10000,  IsPositiveInteger);     %if TextUpdate is set, update to screen how often (in samples)?
@@ -81,8 +83,8 @@ addParameter(p,     'OldData','NOTSET',          @isstruct);    %do we have a pr
 addParameter(p, 'Sensitivity','NOTSET',          @isstruct);    %parameters for sensitivity-testing mode
 
 %paths
-addParameter(p,'DensityPath','./common/saber_density_filled.mat',@isfile); %path to density data
-addParameter(p,    'OutPath',                          'NOTSET', @isdir ); %output file. will be generated automatically below if set to 'NOTSET' or not supplied
+addParameter(p,'DensityPath','./common/saber_density_filled.mat',@isfile);   %path to density data
+addParameter(p,    'OutPath',                          'NOTSET', @isfolder); %output file. will be generated automatically below if set to 'NOTSET' or not supplied
  
 %arbitrary numbers used in the code. Most defaults have been selected via sensivity testing using 3D AIRS data.
 addParameter(p,    'MinSignal' ,  0.99,        IsPositive);     %fraction of total signal needed to produce final sample
@@ -110,7 +112,7 @@ end
 [~,InstList] = instrument_settings('JUSTLISTING',Settings);
 if sum(ismember(InstList,Instrument)) ~= 1;
   disp(['Instrument ''',Instrument,''' not yet supported, stopping'])
-  disp(['Valid (case-sensitive) list is:'])
+  disp( 'Valid (case-sensitive) list is:' )
   for iInst=1:1:numel(InstList)
     disp(['--> ',InstList{iInst}])
   end  
@@ -121,7 +123,7 @@ end;
 ModelList = model_settings([],'JUSTLISTING');
 if sum(ismember(ModelList,ModelName)) ~= 1;
   disp(['Model ''',ModelName,''' not yet supported, stopping'])
-  disp(['Valid (case-sensitive) list is:'])
+  disp( 'Valid (case-sensitive) list is:')
   for iModel=1:1:numel(ModelList)
     disp(['--> ',ModelList{iModel}])
   end
@@ -243,37 +245,68 @@ else
 
   %convert pressure to log-prs, to make maths easier
   Model.Prs = log10(Model.Prs);
-  
-  %drop parts of the atmosphere that we don't care about
-  InPrsRange = find(Model.Prs <= log10(Settings.MaxPrs) & Model.Prs >= log10(Settings.MinPrs));
-  Model.Prs = Model.Prs(InPrsRange);
-  Model.T   = Model.T(:,:,:,InPrsRange);
-  clear InPrsRange
-  
-  %make sure pressure increases in z. needed for griddedinterpolant below.
-  if mean(diff(Model.Prs)) < 0
-    Model.Prs = flip(Model.Prs,1);
-    Model.T   = flip(Model.T,  4);
-  end
-  
-  %produce gridded interpolant fields for each timestep
-  [x,y,z] = ndgrid(Model.Lon,Model.Lat,Model.Prs);
-  Interpolants = struct();
-  for iTime=1:1:numel(Model.Time)
-    F = griddedInterpolant(single(x),single(y),single(z),single(squeeze(Model.T(iTime,:,:,:))));
-    Interpolants.(['t',num2str(iTime)]) = F;
-  end
-  Interpolants.Time = Model.Time;
-  clear x y z iTime F
 
-  disp([ModelName,' interpolants prepared for sampling on ',datestr(DayNumber)]);
+  %ok, what we do next depends on whether the model is on a lon/lat/prs/t grid (better)
+  %or a set of scattered points (much slower)
+  if Settings.ScatteredInt ~= 1;
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %gridded data. Phew.
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    disp('Using gridded interpolation to generate model fields')
+
+    %drop parts of the atmosphere that we don't care about
+    InPrsRange = find(Model.Prs <= log10(Settings.MaxPrs) & Model.Prs >= log10(Settings.MinPrs));
+    Model.Prs = Model.Prs(InPrsRange);
+    Model.T   = Model.T(:,:,:,InPrsRange);
+    clear InPrsRange
+
+    %make sure pressure increases in z. needed for griddedinterpolant below.
+    if mean(diff(Model.Prs)) < 0
+      Model.Prs = flip(Model.Prs,1);
+      Model.T   = flip(Model.T,  4);
+    end
+
+    %produce gridded interpolant fields for each timestep
+    [x,y,z] = ndgrid(Model.Lon,Model.Lat,Model.Prs);
+    Interpolants = struct();
+    for iTime=1:1:numel(Model.Time)
+      F = griddedInterpolant(single(x),single(y),single(z),single(squeeze(Model.T(iTime,:,:,:))));
+      Interpolants.(['t',num2str(iTime)]) = F;
+    end
+    Interpolants.Time = Model.Time;
+    clear x y z iTime F
+
+  else
   
-  %finally, store the model ID, time period, pressure and interpolants for future use
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %scattered data. Same code complexity, 
+    %but it gonna be slow.
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    disp('Using scattered interpolation to generate model fields')
+
+    %produce interpolant for each timestep
+    %scatteredinterpolant only takes doubles, which is frustrating...
+    for iTime=1:1:numel(Model.Time)
+      iTime
+      F = scatteredInterpolant(double(Model.LonI(:)),double(Model.LatI(:)),double(Model.PrsI(:)), ...
+                               double(squeeze(Model.TI(iTime,:)))');
+      Interpolants.(['t',num2str(iTime)]) = F;
+    end
+    Interpolants.Time = Model.Time;
+  end
+
+  %store the model ID, time period, pressure and interpolants for future use
   OldData.I = Interpolants;
   OldData.ModelPressureScale = Model.Prs;
-  OldData.ModelTimeScale = Model.Time;  
-  OldData.ModelID = ModelName;  
+  OldData.ModelTimeScale = Model.Time;
+  OldData.ModelID = ModelName;
   OldData.Time = [min(Model.Time),max(Model.Time)];
+
+  %tell the user we're done
+  disp([ModelName,' interpolants prepared for sampling on ',datestr(DayNumber)]);
 
   %then dump the model data to save memory
   %we already have the axes and the interpolants, and that's all we want  
@@ -364,7 +397,6 @@ end
 %1. if we're rotating in the vertical plane, we need density data.
 if sum(ObsGrid.Track.ViewAngleZ,'omitnan') ~= 0
   %load density data (global-mean daily-mean saber-derived density)
-  Density = struct();
   Density = load(Settings.DensityPath);
   Density = Density.Results;
   Density.Prs = log10(h2p(Density.HeightScale./1000));
@@ -793,7 +825,13 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   I = Interpolants.(['t',num2str(idx)]);
   
   %and apply it
-  Fine.T = I(single(Fine.Lon(:)),single(Fine.Lat(:)),single(Fine.Prs(:)));
+  if Settings.ScatteredInt ~= 1
+    %singles are easier on our memory bottlenecks...
+    Fine.T = I(single(Fine.Lon(:)),single(Fine.Lat(:)),single(Fine.Prs(:)));
+  else
+    %...but the scatteredInterpolant function can't cope with them
+    Fine.T = I(double(Fine.Lon(:)),double(Fine.Lat(:)),double(Fine.Prs(:)));
+  end
   
   %scale by weights, and store
   if Settings.IncludeNaNs == 1;
@@ -803,7 +841,11 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   end
   
   %also compute simple T at measurement centre, for comparison purposes
-  TSimple = I(single(Sample.Lon),single(Sample.Lat),single(Sample.Prs));
+  if Settings.ScatteredInt ~= 1; TSimple = I(single(Sample.Lon),single(Sample.Lat),single(Sample.Prs));
+  else                           TSimple = I(double(Sample.Lon),double(Sample.Lat),double(Sample.Prs));
+  end
+
+  
 
   %success!
   InnerError = 0;
@@ -820,7 +862,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% reconstructor - puts the data into the right shape
+%% reconstructor - puts the data into a human-readable shape
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -830,7 +872,7 @@ function [Error,Output] = unified_reconstructor(ObsGrid,Final,Simple)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%converts sampled results from list of points to a structure in 
+%converts sampled results from list of points to an array in 
 %the same format as the original data
 %
 %Corwin Wright, c.wright@bath.ac.uk, 03/Feb/2023
