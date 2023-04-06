@@ -14,10 +14,9 @@ function Model = load_dyamond_common(ObsGrid,WantedModel,FixedPFlag)
 
 %if FixedPFlag exists and is nonzero, then a fixed pressure scale specified 
 %below will be used, otherwise the true pressure from the model will be 
-%computed (which basically doubles the runtime)
+%computed (which basically doubles the already-long runtime)
 
 
-FixedPFlag = 1
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% set paths
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -103,35 +102,47 @@ clear delta1 delta2 FirstTime LastTime FirstFile LastFile
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %we're going to do this twice - once for pressure and once for temperature - and then merge them at the end
-Range = [floor(min(ObsGrid.Track.Lon)),ceil(max(ObsGrid.Track.Lon)),floor(min(ObsGrid.Track.Lat)),ceil(max(ObsGrid.Track.Lat))];
+%define range covered by the dataset, with a bit of padding (10% of the range on each side)
+Range = [floor(min(ObsGrid.Track.Lon)),ceil(max(ObsGrid.Track.Lon)), ...
+         floor(min(ObsGrid.Track.Lat)),ceil(max(ObsGrid.Track.Lat))];
+Range = Range ...
+      + [-1,1,0,0].*0.1.*range(Range([1,2])) ...
+      + [0,0,-1,1].*0.1.*range(Range([3,4]));
+if Range(1) < -180; Range(1) = -180; end
+if Range(2) >  180; Range(2) =  180; end
+if Range(3) <  -90; Range(3) =  -90; end
+if Range(4) >   90; Range(4) =   90; end
 
 
 if FixedPFlag == 1;  InnerLoop = 1; TempFiles = cell(numel(Files),1); 
-else                 InnerLoop = 2; TempFiles = cell(numel(Files),3); %the first dim is for the merged file
+else;                InnerLoop = 2; TempFiles = cell(numel(Files),3); %the first dim is for the merged file
 end
+
+FileTimes = NaN(numel(Files),1);
+
+%create a unique identifier, in case multiple processes are working at once (likely)
+%combination of the time to the tenth of a millisecond and a random number between
+%one and a million should hopefully be unique?
+Identifier = [strrep(num2str(datenum(now)),'.',''),'_',num2str(randi(1e6,[1]))];
+% Identifier = '';
+
 
 for iFile=1:1:numel(Files)
   for iSource=1:1:InnerLoop %only do second loop if we want to extract true pressure
     switch iSource
-      case 2; Source = PressureVar;
       case 1; Source = 'ta';
+      case 2; Source = PressureVar;
     end
 
+    disp(' ');disp(' ');
     disp(['Subsetting model file ',num2str(iFile),' of ',num2str(numel(Files)),' using CDO - variable: ',Source])
 
-
-    %add a unique identifier, just in case multiple processes are working with this file
-    %combination of the time to the tenth of a millisecond and a random number between 
-    %one and a million should hopefully be unique?
-    % Identifier = [strrep(num2str(datenum(now)),'.',''),'_',num2str(randi(1e6,[1]))]);
-    Identifier = '';
    
-    %for testing, non-unique filenames:
-    TempFiles{iFile,iSource+1} = [ScratchPath,Source,'_',sprintf('%06d',iFile),Identifier,'.nc'];
-    if exist(TempFiles{iFile,iSource+1},'file'); continue; end
+    %produce filename
+    TempFiles{iFile,iSource+1} = [ScratchPath,Source,'_',sprintf('%06d',iFile),'_',Identifier,'.nc'];
 
     %now, generate a CDO command to subset the data down in space
-    Command = 'cdo -v -P 16'; %verbose output, 16 cores permitted
+    Command = 'cdo -P 16'; %16 cores permitted. Add '-v' to produce verbose output
     Command = [Command,' -sellonlatbox,',num2str(Range(1)),',',num2str(Range(2)),',',num2str(Range(3)),',',num2str(Range(4))];
 
     %interpolate onto a lat/lon grid that is representative of the data
@@ -154,6 +165,9 @@ for iFile=1:1:numel(Files)
       for iTime=1:1:numel(InRange); Command = [Command,',',num2str(InRange(iTime))]; end
     end
 
+    %store the times in the steps
+    FileTimes(iFile,:) = TimeStore(iFile,InRange(iTime));
+
     %call the grid
     if isfield(Paths,'Grid')
       Command = [Command,' -setgrid,',Paths.Grid,' '];
@@ -161,10 +175,12 @@ for iFile=1:1:numel(Files)
 
 
     %finalise the command with the names of the in and out files
-    Command = [Command,' ',strrep(Files{iFile},'ta',Source),' ',TempFiles{iFile,iSource+1}]
+    Command = [Command,' ',strrep(Files{iFile},'ta',Source),' ',TempFiles{iFile,iSource+1}];
 
     
     %and execute it
+    if exist(TempFiles{iFile,iSource+1},'file'); continue; end %for testing with non-unique identifiers
+    disp(['Executing CDO command: ',Command])
     status = system(Command);
     if status ~=0;
       %error!
@@ -179,9 +195,11 @@ for iFile=1:1:numel(Files)
     TempFiles{iFile,1} = strrep(TempFiles{iFile,2},'ta','merged'); 
 
     Command = ['cdo merge ',TempFiles{iFile,2},' ',TempFiles{iFile,3},' ',TempFiles{iFile,1}];
-    if exist(TempFiles{iFile,3},'file'); continue; end
+    if exist(TempFiles{iFile,1},'file'); continue; end %for testing with non-unique identifiers
     
     %and execute it
+    disp(' ');disp(' ');    
+    disp(['Executing CDO command: ',Command])    
     status = system(Command);
     if status ~=0;
       %error!
@@ -189,18 +207,21 @@ for iFile=1:1:numel(Files)
       return
     end
     disp(['File ',num2str(iFile),' of ',num2str(numel(Files)),' merged'])
+  else
+    %put the link to the T file in the first element of TempFiles
+    TempFiles{iFile,1} = TempFiles{iFile,2};
+    TempFiles = TempFiles(1);
   end
 
 end; clear iFile
-clear Range Files ff InRange Command status PrsFile TimeStore
-
-
+clear Range Files ff InRange Command status PrsFile 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% great! Let's load the files and get what we need out of them
 %memory can be *really* tight here, so try to use as little as possible
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 for iFile=1:1:size(TempFiles,1)
 
@@ -209,41 +230,45 @@ for iFile=1:1:size(TempFiles,1)
     %if it's the first file, do some prep  
     Model.Lon  = ncread(TempFiles{iFile,1},'lon');
     Model.Lat  = ncread(TempFiles{iFile,1},'lat');
-    if FixedPFlag~=1;Model.Prs  = ncread(TempFiles{iFile,1},PressureVar); end
-    Model.Time = datenum(1970,1,1,ncread(TempFiles{iFile,1},'time'),0,0); 
-    Model.T    = ncread(TempFiles{iFile,1},'ta');
-    if FixedPFlag~=1; Model.Prs  = ncread(TempFiles{iFile,1},PressureVar); end
+    if FixedPFlag~=1; Model.Prs = permute(ncread(TempFiles{iFile,1},PressureVar),[4,1,2,3]);
+    else;             Model.Prs = FixedP;
+    end
+    Model.Time = FileTimes(~isnan(FileTimes(1,:)));
+    Model.T    = permute(ncread(TempFiles{iFile,1},'ta'),[4,1,2,3]);
   else
     %otherwise, append
-    Model.Time = [Model.Time,datenum(1970,1,1,Data.time,0,0)];
-    Model.T    = cat(1,Model.T,  permute(           Data.ta,[4,1,2,3]));
-    if FixedPFlag~=1; Model.Prs  = cat(1,Model.Prs,permute(Data.(PressureVar),[4,1,2,3])); end
+    Model.Time = [Model.Time,FileTimes(~isnan(FileTimes(iFile,:)))];
+    Model.T    = cat(1,Model.T,permute(ncread(TempFiles{iFile,1},'ta'),[4,1,2,3]));
+    if FixedPFlag~=1; Model.Prs  = cat(1,Model.Prs,permute(ncread(TempFiles{iFile,1},PressureVar),[4,1,2,3])); end
   end
 
 
 end; clear iFile
 
 
-% % % % % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % % % % % % % %% delete working files
-% % % % % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % % % % % % % 
-% % % % % % % % 
-% % % % % % % % for iFile=1:1:numel(TempFiles)
-% % % % % % % %   delete(TempFiles{iFile})
-% % % % % % % %   disp(['Tidiying up: ',TempFiles{iFile},' deleted'])
-% % % % % % % % end; clear iFile
-% % % % % % % % 
-% % % % % % % % 
-% % % % % % % % 
+% % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % %% delete working files
+% % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % 
+% % disp(' ');disp(' ');
+% % for iFile=1:1:numel(TempFiles)
+% %   delete(TempFiles{iFile})
+% %   disp(['Tidying up: ',TempFiles{iFile},' deleted'])
+% % end; clear iFile
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% interpolate the data onto a common pressure scale
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if FixedPFlag ~= 1
 
+  disp(' ');disp(' ');
+  disp('Interpolating to single pressure scale')
+
   %what dim is the one we want to interpolate?
-  Dim = 3;
+  Dim = 4;
 
   %permute desired dimension to front
   sz = size(Model.T);
@@ -288,8 +313,7 @@ end
 %Prs   - 1d
 %T     - 4d, time x lon x lat x pressure
 
-%switch around T dims
-Model.T = permute(Model.T,[4,1,2,3]);
+%all should be correct...
 
 %shift longitudes into range
 Model.Lon(Model.Lon > 180) = Model.Lon(Model.Lon > 180) - 360;

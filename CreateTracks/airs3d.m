@@ -21,9 +21,9 @@ Settings.InDir = [LocalDataDir,'/AIRS/3d_airs'];
 %geolocation - which data should we include?
 %for all except HeightRange, we include any wholegranule including these
 %for HeightRange, we will trim the granules in height to just this range
-Settings.LatRange    = [-90,90];
-Settings.LonRange    = [-180,180];
-Settings.TimeRange   = datenum(2020,1,24);
+Settings.LatRange    = [-30,0];
+Settings.LonRange    = [90,150];
+Settings.TimeRange   = datenum(2020,1,[20,26]);
 Settings.HeightRange = [15,70]; %km
 
 %path handling internal to routine
@@ -222,6 +222,10 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     ViewAngleZ = mod(Recon.x,90) - (90./2); %rows off-centre
     ViewAngleZ = ViewAngleZ ./ max(abs(ViewAngleZ)); %normalised
     ViewAngleZ = ViewAngleZ .* 49.5; %degrees
+
+    %there is a small bug I need to pin down in the main code that has trouble dealing with ViewAngleZ *exactly* equal to 0
+    %as a temporary patch that will have no meaningful effect on the results, set these valeus to a nonzero value
+    ViewAngleZ(ViewAngleZ == 0) = 0.001;
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %save!
