@@ -21,10 +21,10 @@ Settings.InDir = [LocalDataDir,'/AIRS/3d_airs'];
 %geolocation - which data should we include?
 %for all except HeightRange, we include any wholegranule including these
 %for HeightRange, we will trim the granules in height to just this range
-Settings.LatRange    = [-30,0];
-Settings.LonRange    = [90,150];
-Settings.TimeRange   = datenum(2020,1,[20,26]);
-Settings.HeightRange = [15,70]; %km
+Settings.LatRange    = [-60,60];
+Settings.LonRange    = [-180,180];
+Settings.TimeRange   = datenum(2020,1,20):1:datenum(2020,3,1)
+Settings.HeightRange = [20,60]; %km
 
 %path handling internal to routine
 [~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
@@ -54,12 +54,13 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
   %find granules on this day in our geographic region
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  List = find_airs_overpasses([1,1].*iDay,Settings.LonRange,Settings.LatRange,[0,0],1);
+  List = find_airs_overpasses(iDay+[0,1],Settings.LonRange,Settings.LatRange,[0,0],1);
   List = List(:,2);
 
-
   %loop over them
-  for jGranule=1:1:numel(List);
+  for jGranule=1:1:240%numel(List);
+    try
+  % for jGranule=1:1:numel(List);
     iGranule = List(jGranule);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -71,7 +72,6 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
 
     %and generate the file name
     OutFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(iDay),'_g',sprintf('%03d',iGranule),'.mat'];
-
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %import data
@@ -211,7 +211,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     RNight = airs_resolution(1,dayno,latmean,squeeze(Data.ret_z(1,1,:)))./(2.*2.355);
     RDay   = airs_resolution(0,dayno,latmean,squeeze(Data.ret_z(1,1,:)))./(2.*2.355);
     
-    IsDay =  which_airs_retrieval(Data.l1_lon(:),Data.l1_lat(:),Data.l1_time(:));
+    IsDay =  which_airs_retrieval(Data.l1_lon(:),Data.l1_lat(:),Data.l1_time(:),1);
     Weight.Z = Weight.X.*NaN;
     Weight.Z(IsDay == 1) = abs(interp1(squeeze(Data.ret_z(1,1,:)),  RDay,Data.ret_z(IsDay == 1))); 
     Weight.Z(IsDay == 0) = abs(interp1(squeeze(Data.ret_z(1,1,:)),RNight,Data.ret_z(IsDay == 0)));
@@ -257,5 +257,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     %tidy up, then done
     clear Track DayFile
     disp([datestr(iDay),', granule ',sprintf('%03d',iGranule),' complete'])
+    catch; end
+
   end; clear iGranule
 end; clear iDay
