@@ -115,6 +115,8 @@ Model.Prs  = AllData.Prs;
 
 %shift longitudes into range
 Model.Lon(Model.Lon > 180) = Model.Lon(Model.Lon > 180) - 360;
+idx = sort(Model.Lon,'asc');
+
 
 %make lat increase monotonically
 Model.Lat = Model.Lat(end:-1:1);

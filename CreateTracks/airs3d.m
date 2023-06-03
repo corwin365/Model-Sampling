@@ -21,9 +21,10 @@ Settings.InDir = [LocalDataDir,'/AIRS/3d_airs'];
 %geolocation - which data should we include?
 %for all except HeightRange, we include any wholegranule including these
 %for HeightRange, we will trim the granules in height to just this range
-Settings.LatRange    = [-60,60];
+Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.TimeRange   = datenum(2020,1,20):1:datenum(2020,3,1)
+% Settings.TimeRange   = datenum(2018,11,5):1:datenum(2018,11,5)
+Settings.TimeRange   = datenum(2020,1,20):1:datenum(2020,3,1);
 Settings.HeightRange = [20,60]; %km
 
 %path handling internal to routine

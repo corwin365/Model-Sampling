@@ -37,7 +37,7 @@ ModelInfo.ecmwf_issi.Arguments = 'ObsGrid';
 
 %ERA5 reanalysis
 ModelInfo.era5.FuncName  = 'load_era5';
-ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs,Settings.TallMode';
+ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs';
 
 %ERA-Interim reanalysis
 ModelInfo.erai.FuncName  = 'load_erai';

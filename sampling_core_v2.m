@@ -50,8 +50,6 @@ IsPositiveInteger = @(x) validateattributes(x,{'numeric'},{'positive','integer'}
 IsPositive        = @(x) validateattributes(x,{'numeric'},{'positive'});
 IsNonNegative     = @(x) validateattributes(x,{'numeric'},{'>=',0});
 
-
-
 %inputs - required
 %%%%%%%%%%%%%%%%%%%
 
@@ -261,6 +259,26 @@ else
     Model.Prs = Model.Prs(InPrsRange);
     Model.T   = Model.T(:,:,:,InPrsRange);
     clear InPrsRange
+
+    %make sure all variables increase montonically
+    %this should have been handled upstream, but interactions with CDO can break it for more complicated models
+    Fields = {'Time','Lon','Lat','Prs'}; %order is important - this is the same as the Model.T array
+    for iField=1:1:numel(Fields)
+
+      %get the order, and re-order the index variable
+      [Model.(Fields{iField}),idx] = sort(Model.(Fields{iField}));
+
+      %re-order the main variable along this dimension
+      dims  = 1:1:4;
+      dims2 = unique([iField,dims],'stable');
+      Model.T = permute(Model.T,dims2);
+      Model.T = Model.T(idx,:,:,:);
+      Model.T = permute(Model.T,[dims(dims < iField)+1,1,dims(dims > iField)]);
+
+
+    end
+    clear Fields iField idx dims dims2
+
 
     %make sure pressure increases in z. needed for griddedinterpolant below.
     if mean(diff(Model.Prs)) < 0
