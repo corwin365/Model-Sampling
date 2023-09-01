@@ -1,9 +1,10 @@
-function Model = load_dyamond_common(ObsGrid,WantedModel,FixedPFlag,BlobScale)
+function Model = load_dyamond_discover(ObsGrid,WantedModel,FixedPFlag)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%load DYAMOND-WINTER data, using CDO to trim it for memory
+%load DYAMOND-WINTER data, using CDO to trim it for memory.This is the version
+%of the GEOS data on NASA's DISCOVER system
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -21,30 +22,18 @@ function Model = load_dyamond_common(ObsGrid,WantedModel,FixedPFlag,BlobScale)
 %% set paths
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 %input data
-switch WantedModel
-  case 'icon5km';
-    PressureVar = 'pfull';
-    Paths.Root  = '/work/ka1081/DYAMOND_WINTER/MPIM-DWD-DKRZ/ICON-SAP-5km/DW-ATM/atmos/';
-    Paths.Grid  = [Paths.Root,'/3hr/ta/dpp0014/ml/gn/grid.nc'];
-    Paths.T     = [Paths.Root,'/3hr/ta/dpp0014/ml/gn/'];
-    Paths.P     = [Paths.Root,'/3hr/',PressureVar,'/dpp0014/ml/gn/'];
-    GridSize    = [0.03,0.03]; %degrees lon,lat
-    FixedP      = [1.57, 1.97, 2.46, 3.05, 3.78, 4.66, 5.74, 7.04, 8.60, 10.5, 12.7, 15.3, 18.3, 21.7, 25.6, 30, 34.9, 40.3, 46.2, 52.6, 59.5, 66.8, 74.5, 82.7, 91.1, 99.8, 109, 118, 127, 136, 146, 156, 166, 177, 189, 201, 214, 228, 242, 257, 273, 289, 307, 325, 344, 364, 385, 407, 429, 453, 478, 504, 530, 557, 583, 610, 637, 663, 689, 715, 740, 765, 789, 813, 835, 857, 878, 898, 916, 934, 950, 964, 977, 987, 996, 1000, 1010];
-  case 'geos3km';
-    Paths.T     = '/fastdata/ka1081/DYAMOND_WINTER/NASA/GEOS-3km/DW-ATM/atmos/1hr/ta/r1i1p1f1/ml/gn';
-    GridSize    = [0.02,0.02]; %degrees lon,lat
-    FixedP      =  [1008.3652,1006.1125,1003.6658,1001.0101,998.13165,995.01276,991.63477,987.98083,984.02991,979.76385,975.15991,970.19617,964.85162,959.10510,952.93085,946.30682,939.21198,931.62286,923.52069,914.88068,905.68677,895.92084,885.56885,874.61884,863.06305,850.89728,838.11896,824.73474,810.75177,796.18555,781.05774,765.39398,749.22852,732.59888,715.55164,698.13708,680.41010,662.42670,644.25299,625.95697,607.60797,589.27515,571.02869,552.93750,535.06641,517.47650,500.26202,483.49414,467.20297,451.38226,436.02444,421.11563,406.64743,392.61063,378.99368,365.78625,352.97913,340.56210,328.52609,316.86224,305.56061,294.61130,284.00595,273.73602,263.79272,254.16740,244.85287,235.83958,227.11940,218.68471,210.52814,202.64204,195.01849,187.64998,180.53036,173.65205,167.00713,160.59064,154.39568,148.41571,142.64375,137.07347,131.70009,126.51762,121.51954,116.70026,112.05444,107.57777,103.26315,99.107353,95.104362,91.248917,87.538086,83.963913,80.518509,77.193420,73.981903,70.876968,67.872124,64.961655,62.141167,59.405766,56.750366,54.173119,51.673130,49.250134,46.903931,44.634087,42.440006,40.321148,38.276867,36.306076,34.407806,32.580643,30.823042,29.133589,27.511152,25.954039,24.460752,23.030113,21.660688,20.350769,19.098953,17.904091,16.764410,15.678376,14.644983,13.662410,12.729040,11.843728,11.004971,10.211002,9.4605923,8.7524252,8.0846062,7.4559150,6.8651080,6.3103070,5.7903557,5.3039913,4.8493214,4.4253492,4.0306673,3.6635652,3.3233337,3.0081916,2.7167423,2.4482894,2.2010057,1.9739232,1.7659978,1.5756230,1.4023839,1.2446179,1.1013640,0.97193444,0.85479808,0.74967796,0.65521342,0.57071102,0.49539959,0.42822772,0.36900148,0.31642285,0.27038151,0.22983353,0.19446401,0.16369103,0.13698566,0.11397021,0.094084047,0.077148452,0.062610246,0.050387368,0.039958704,0.031233277,0.023860855,0.017500000,0.012000000,0.0072500003,0.0032572495];
-    FixedP = FixedP(end:-1:1); %above array is in reverse order
-  otherwise
-    disp(['DYAMOND model ',WantedModel,' not configured, stopping'])
-    Model.Error = 3;
-    return
-end
+PressureVar    = 'pfull';
+TemperatureVar = 'ta';
+    Paths.Root     = '/work/ka1081/DYAMOND_WINTER/MPIM-DWD-DKRZ/ICON-SAP-5km/DW-ATM/atmos/';
+    Paths.Grid     = [Paths.Root,'/3hr/ta/dpp0014/ml/gn/grid.nc'];
+    Paths.T        = [Paths.Root,'/3hr/ta/dpp0014/ml/gn/'];
+GridSize       = [0.01,0.01]; %degrees lon,lat
+FixedP         = [1008.3652       1006.1125       1003.6658       1001.0101       998.13165       995.01276       991.63477        987.98083       984.02991       979.76385       975.15991       970.19617       964.85162       959.10510        952.93085       946.30682       939.21198       931.62286       923.52069       914.88068       905.68677        895.92084       885.56885       874.61884       863.06305       850.89728       838.11896       824.73474        810.75177       796.18555       781.05774       765.39398       749.22852       732.59888       715.55164        698.13708       680.41010       662.42670       644.25299       625.95697       607.60797       589.27515        571.02869       552.93750       535.06641       517.47650       500.26202       483.49414       467.20297        451.38226       436.02444       421.11563       406.64743       392.61063       378.99368       365.78625        352.97913       340.56210       328.52609       316.86224       305.56061       294.61130       284.00595        273.73602       263.79272       254.16740       244.85287       235.83958       227.11940       218.68471        210.52814       202.64204       195.01849       187.64998       180.53036       173.65205       167.00713        160.59064       154.39568       148.41571       142.64375       137.07347       131.70009       126.51762        121.51954       116.70026       112.05444       107.57777       103.26315       99.107353       95.104362        91.248917       87.538086       83.963913       80.518509       77.193420       73.981903       70.876968        67.872124       64.961655       62.141167       59.405766       56.750366       54.173119       51.673130        49.250134       46.903931       44.634087       42.440006       40.321148       38.276867       36.306076        34.407806       32.580643       30.823042       29.133589       27.511152       25.954039       24.460752        23.030113       21.660688       20.350769       19.098953       17.904091       16.764410       15.678376        14.644983       13.662410       12.729040       11.843728       11.004971       10.211002       9.4605923        8.7524252       8.0846062       7.4559150       6.8651080       6.3103070       5.7903557       5.3039913        4.8493214       4.4253492       4.0306673       3.6635652       3.3233337       3.0081916       2.7167423        2.4482894       2.2010057       1.9739232       1.7659978       1.5756230       1.4023839       1.2446179        1.1013640      0.97193444      0.85479808      0.74967796      0.65521342      0.57071102      0.49539959       0.42822772      0.36900148      0.31642285      0.27038151      0.22983353      0.19446401      0.16369103       0.13698566      0.11397021     0.094084047     0.077148452     0.062610246     0.050387368     0.039958704      0.031233277     0.023860855     0.017500000     0.012000000    0.0072500003    0.0032572495] ;
+
 
 %working scratch space
-ScratchPath = '~/scratch/working/';
+ScratchPath = '~/data/Corwin/';
 
 
 
@@ -52,75 +41,71 @@ ScratchPath = '~/scratch/working/';
 %% find which files contain the droids^Wtimestamps we're looking for
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-%first, get a list of available files for this model
+%get the time period covered by each file in the directory
 Files = wildcardsearch(Paths.T,'*.nc');
 
-%identifying the timestamps of all the files can be slow, so let's use a lookup file unless the list of files present has changed
-Lookup = [ScratchPath,'/',WantedModel,'.mat'];
-if exist(Lookup,'file')
-  %check it contains what we need
-  A = load(Lookup);
-  %generate a checksum of the list of file names
-  if sum(getByteStreamFromArray(Files)) == sum(getByteStreamFromArray(A.Files))
-    disp('Using timestamps from lookup file')
-    Files = A.Files;
-    TimeStore = A.TimeStore;
+for iFile=1:1:numel(Files)
+  % % % % % 
+  % % % % % %call CDO to get the times of the timesteps
+  % % % % % [~,cmdout] = system(['cdo showtimestamp ',Files{iFile}]);
+  % % % % % 
+  % % % % % %split the output into strings, and find all those that are a valid format
+  % % % % % TimeStamps = split(cmdout);
+  % % % % % Times = zeros(size(TimeStamps));ValidCount =0;
+  % % % % % for iTS=1:1:numel(Times);
+  % % % % %   if regexp(TimeStamps{iTS},'20[0-9][0-9]-[0-9]+-[0-9]+T') == 1; 
+  % % % % %     %valid timestep, parse it
+  % % % % %     ValidCount = ValidCount+1;
+  % % % % %     Times(ValidCount) = datenum(TimeStamps{iTS},'yyyy-mm-ddTHH:MM:SS');
+  % % % % %   end
+  % % % % % end
+  % % % % % Times = Times(1:ValidCount);
+  % % % % % clear cmdout TimeStamps iTS IsT ValidCount
+
+  f = Files{iFile};
+  a = strfind(f,'Mv.');
+  b = strfind(f,'z.nc4');
+  TimeStamp = f(a+3:b);
+  yy = TimeStamp(1:4);
+  mm = TimeStamp(5:6);
+  dd = TimeStamp(7:8);
+  hh = TimeStamp(10:11);
+  Times = datenum(str2num(yy),str2num(mm),str2num(dd),str2num(hh),00,00);
+
+  %if this is the first file, create a time storage array
+  if ~exist('TimeStore','var')
+    TimeStore = NaN(numel(Files),numel(Times));
   end
-  clear A;
+
+  %store
+  TimeStore(iFile,1:numel(Times)) = Times;
+
+end; clear iFile
+
+
+%ok, now find the first and last timestep in each file
+TimeStore(TimeStore == 0) = NaN;
+FirstTime = nanmin(TimeStore,[],2);
+LastTime  = nanmax(TimeStore,[],2);
+
+%and hence the files we need
+%an edge case is arising in COSMIC regional subsets where these are reserved - if so, flip them
+[delta1,FirstFile] = min(abs(FirstTime-min(ObsGrid.Track.Time(:))));
+[delta2,LastFile]  = min(abs( LastTime-max(ObsGrid.Track.Time(:))));
+if FirstFile > LastFile; 
+  a = FirstFile; b = delta1; c = LastFile; d = delta2; 
+  LastFile = a; delta2 = b; FirstFile = a; delta1 = d;
 end
 
-if ~exist('TimeStore','var')
 
-  disp(['Generating timestamp lookup file for ',WantedModel]);
-  for iFile=1:1:numel(Files)
-    disp(Files{iFile})
-
-    %call CDO to get the times of the timesteps
-    [~,cmdout] = system(['cdo showtimestamp ',Files{iFile}]);
-
-    %split the output into strings, and find all those that are a valid format
-    TimeStamps = split(cmdout);
-    Times = zeros(size(TimeStamps));ValidCount =0;
-    for iTS=1:1:numel(Times);
-      if regexp(TimeStamps{iTS},'20[0-9][0-9]-[0-9]+-[0-9]+T') == 1; 
-        %valid timestep, parse it
-        ValidCount = ValidCount+1;
-        Times(ValidCount) = datenum(TimeStamps{iTS},'yyyy-mm-ddTHH:MM:SS');
-      end
-    end
-    Times = Times(1:ValidCount);
-    clear cmdout TimeStamps iTS IsT ValidCount
-
-    %if this is the first file, create a time storage array
-    if ~exist('TimeStore','var')
-      TimeStore = NaN(numel(Files),numel(Times));
-    end
-
-    %store
-    TimeStore(iFile,1:numel(Times)) = Times;
-    TimeStore(TimeStore == 0) = NaN;
-
-    save(Lookup,'TimeStore','Files');
-    
-  end; clear iFile
-else; load(Lookup);
-end
-clear Lookup
-
-
-%hence, find the files which cover the period in our data
-%we just need the closest timestep to the start and end and don't need to pad it
-%this is because the sampling won't interpolate, so only the closest points are used
-[~,idx] = min(abs(nanmin(ObsGrid.Track.Time,[],'all')-TimeStore(:))); [FirstFile,~] = ind2sub(size(TimeStore),idx);
-[~,idx] = min(abs(nanmax(ObsGrid.Track.Time,[],'all')-TimeStore(:))); [LastFile, ~] = ind2sub(size(TimeStore),idx);
+if delta1 > 0; FirstFile = FirstFile-1; end
+if delta2 < 0; LastFile  = LastFile+1; end
+if FirstFile < 1; FirstFile = 1; end
+if LastFile  > size(TimeStore,1); LastFile = size(TimeStore,1); end
 
 Files = Files(FirstFile:1:LastFile);
 TimeStore = TimeStore(FirstFile:1:LastFile,:);
-clear idx FirstFile LastFile 
-
-
-
+clear delta1 delta2 FirstTime LastTime FirstFile LastFile
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% now, use cdo to cut down the data to take these files and cut them down
@@ -130,33 +115,16 @@ clear idx FirstFile LastFile
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %we're going to do this twice - once for pressure and once for temperature - and then merge them at the end
-
-
-%define range covered by the dataset in terms of measurement centre locations
-Range = NaN(5,4);
-Range(1,:) = [floor(min(ObsGrid.Track.Lon)),ceil(max(ObsGrid.Track.Lon)), ...
-              floor(min(ObsGrid.Track.Lat)),ceil(max(ObsGrid.Track.Lat))];
-
-%find the maximum extra distance a blob could add to the edge of the region (with 25% padding)
-MaxDistance = max([ObsGrid.Weight.X;ObsGrid.Weight.Y]).*BlobScale.*1.25;
-
-%find where this puts the range, by taking a line diagonally from each corner
-Range(2,[4,2]) = reckon(Range(1,4),Range(1,2),km2deg(MaxDistance),45);
-Range(3,[3,2]) = reckon(Range(1,3),Range(1,2),km2deg(MaxDistance),135);
-Range(4,[3,1]) = reckon(Range(1,3),Range(1,1),km2deg(MaxDistance),225);
-Range(5,[4,2]) = reckon(Range(1,4),Range(1,1),km2deg(MaxDistance),315);
-
-r(1) = min(Range(:,[1,2]),[],'all');
-r(2) = max(Range(:,[1,2]),[],'all');
-r(3) = min(Range(:,[3,4]),[],'all');
-r(4) = max(Range(:,[3,4]),[],'all');
-Range = r; clear r BlobScale MaxDistance
-
+%define range covered by the dataset, with a bit of padding (10% of the range on each side)
+Range = [floor(min(ObsGrid.Track.Lon)),ceil(max(ObsGrid.Track.Lon)), ...
+         floor(min(ObsGrid.Track.Lat)),ceil(max(ObsGrid.Track.Lat))];
+Range = Range ...
+      + [-1,1,0,0].*0.1.*range(Range([1,2])) ...
+      + [0,0,-1,1].*0.1.*range(Range([3,4]));
 if Range(1) < -180; Range(1) = -180; end
 if Range(2) >  180; Range(2) =  180; end
 if Range(3) <  -90; Range(3) =  -90; end
 if Range(4) >   90; Range(4) =   90; end
-
 
 
 if FixedPFlag == 1;  InnerLoop = 1; TempFiles = cell(numel(Files),1); 
@@ -166,7 +134,7 @@ end
 FileTimes = NaN(numel(Files),1);
 
 
-%reinitialise rngs with the range plus the time, which is hopefully unique (often things run at the exact same time, so just time isn't)
+%reinitialise rngs with the range plus the time, which is hopefully unique (often things run at the exact same time, so jsut time isn't)
 rng(round(sum(Range)+datenum(now))) 
 %  pause(30+randi(90))
 
@@ -177,18 +145,17 @@ Identifier = [strrep(num2str(datenum(now)),'.',''),'_',num2str(randi(1e6,[1]))];
 % Identifier = '';
 
 
-
 for iFile=1:1:numel(Files)
   for iSource=1:1:InnerLoop %only do second loop if we want to extract true pressure
     switch iSource
-      case 1; Source = 'ta';
+      case 1; Source = TemperatureVar;
       case 2; Source = PressureVar;
     end
 
     disp(' ');disp(' ');
     disp(['Subsetting model file ',num2str(iFile),' of ',num2str(numel(Files)),' using CDO - variable: ',Source])
 
-   
+
     %produce filename
     TempFiles{iFile,iSource+1} = [ScratchPath,Source,'_',sprintf('%06d',iFile),'_',Identifier,'.nc'];
 
@@ -228,7 +195,7 @@ for iFile=1:1:numel(Files)
     %finalise the command with the names of the in and out files
     Command = [Command,' ',strrep(Files{iFile},'ta',Source),' ',TempFiles{iFile,iSource+1}];
 
-    
+
     %and execute it
     if exist(TempFiles{iFile,iSource+1},'file'); continue; end %for testing with non-unique identifiers
     disp(['Executing CDO command: ',Command])
@@ -247,7 +214,7 @@ for iFile=1:1:numel(Files)
 
     Command = ['cdo merge ',TempFiles{iFile,2},' ',TempFiles{iFile,3},' ',TempFiles{iFile,1}];
     if exist(TempFiles{iFile,1},'file'); continue; end %for testing with non-unique identifiers
-    
+
     %and execute it
     disp(' ');disp(' ');    
     disp(['Executing CDO command: ',Command])    
@@ -265,7 +232,7 @@ for iFile=1:1:numel(Files)
   end
 
 end; clear iFile
-clear Range ff InRange Command status PrsFile 
+clear Range Files ff InRange Command status PrsFile 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -296,10 +263,10 @@ for iFile=1:1:size(TempFiles,1)
 
 end; clear iFile
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% delete working files
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 disp(' ');disp(' ');
 for iFile=1:1:numel(TempFiles)
@@ -349,7 +316,7 @@ if FixedPFlag ~= 1
   clear Dim PrsScale DimOrder T P Ti Pi
 
 end
-  
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% finally, permute the results to the desired output order
@@ -367,7 +334,7 @@ end
 %all should be correct...
 
 %shift longitudes into range
-Model.Lon(Model.Lon > 180) = Model.Lon(Model.Lon > 180) - 360;
+% % % % % % % % % % % Model.Lon(Model.Lon > 180) = Model.Lon(Model.Lon > 180) - 360;
 
 %success!
 Model.Error = 0;

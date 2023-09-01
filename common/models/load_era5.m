@@ -24,6 +24,7 @@ FileName1 = [ModelPath,sprintf('%04d',y),'/era5_',sprintf('%04d',y),'d',sprintf(
 [y,~,~] = datevec(DayNumber+1); dn = date2doy(DayNumber+1);
 FileName2 = [ModelPath,sprintf('%04d',y),'/era5_',sprintf('%04d',y),'d',sprintf('%03d',dn),'.nc'];
 
+
 %work out pressure axis and select wanted region
 PrsScale = ecmwf_prs_v3(137,11.06059)'; %close enough for the stratosphere. 
 PrsScale(1) = 0.01; %because it is, but my routine gives a NaN
@@ -89,8 +90,6 @@ Model.T   = Model.T(:,idx,:,:);
 %latitude is also descending - we want ascending. Oh, ECMWF...
 Model.Lat = flip(Model.Lat,1);
 Model.T   = flip(Model.T,3);
-
-
 
 %success!
 Model.Error = 0;

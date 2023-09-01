@@ -18,15 +18,15 @@ Settings.Instrument = 'AIRS3D';
 Settings.Model      = 'dyamond_icon5km';
 
 %choose the data to sample
-Settings.Dates   = datenum(2020,1,20):1:datenum(2020,3,1);
-Settings.SubSets = 1:1:240;
+Settings.Dates   = datenum(2020,2,14);%:1:datenum(2020,3,1);
+Settings.SubSets = 1:1:280;
 
 %check if we have generated a track file for this, and only generate a script if we have
 Settings.CheckExists = 1;
 Settings.CheckDir = 'C:\Data\corwin\sampling_project\tracks\';
 
 %how many jobs in each slurm call?
-Settings.JobsPerCall = 240;
+Settings.JobsPerCall = 20;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% make list of options, job names, and output file paths
@@ -81,7 +81,7 @@ for iJob = 1:Settings.JobsPerCall:numel(Jobs.Names)
   %create script header
   Script = "#!/bin/bash";
   
-  Script(end+1) = "#SBATCH --account=xxxxxx";                %account name for budget.
+  Script(end+1) = "#SBATCH --account=bm1233";                %account name for budget.
   Script(end+1) = "#SBATCH --job-name="+Jobs.Names{iJob};    %name of job. Generated automatically.
   Script(end+1) = "#SBATCH --output=output.%j";              %standard (text) output file.
   Script(end+1) = "#SBATCH --error=error.%j";                %standard (text) error file.

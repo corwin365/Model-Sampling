@@ -29,7 +29,7 @@ function [Error,OldData] = sampling_core_v2(Instrument,ModelName,DayNumber,varar
 
 %the master file path is not optional as it is used upstream. Set it here.
 %this is where all the track-input and sampled-output files live
-MasterPath = [LocalDataDir,'/corwin/sampling_project/'];
+MasterPath = '/scratch/b/b382226/sampling';
 
 %get functions
 addpath(genpath('common/'));
@@ -261,7 +261,6 @@ else
     clear InPrsRange
 
     %make sure all variables increase montonically
-    %this should have been handled upstream, but interactions with CDO can break it for more complicated models
     Fields = {'Time','Lon','Lat','Prs'}; %order is important - this is the same as the Model.T array
     for iField=1:1:numel(Fields)
 
@@ -899,8 +898,19 @@ function [Error,Output] = unified_reconstructor(ObsGrid,Final,Simple)
 
 Error = 1; %assume failure unless proved otherwise
 
+
+%sometimes we store a list of instruments in the recon. set this aside if so.
+if isfield(ObsGrid.Recon,'Insts'); 
+  INSTSTORE = ObsGrid.Recon.Insts; 
+  INSTID    = ObsGrid.Recon.I;
+  ObsGrid.Recon = rmfield(ObsGrid.Recon,{'Insts','I'});
+end
+
 %what size should the output be?
-DimList = fieldnames(ObsGrid.Recon); NDims = numel(DimList); OutputSize = NaN(NDims,1);
+DimList = fieldnames(ObsGrid.Recon); 
+
+
+NDims = numel(DimList); OutputSize = NaN(NDims,1);
 for iDim=1:1:NDims; OutputSize(iDim) = max(ObsGrid.Recon.(DimList{iDim}));end; clear iDim
 
 %order list of dimensions from largest number of elements to smallest (arbitrary, but I want something stable)
@@ -923,6 +933,14 @@ end; clear iField Var
 %reshape the output data
 Output.T       = reshape( Final(Order),OutputSize');
 Output.Tsimple = reshape(Simple(Order),OutputSize');
+
+
+%put any set-aside fields back
+if exist('INSTSTORE','var'); 
+  Output.Insts = INSTSTORE; 
+  Output.I = reshape(INSTID,OutputSize'); 
+end
+
 
 %done
 Error = 0;

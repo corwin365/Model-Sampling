@@ -36,6 +36,10 @@ InstInfo = struct;
 %COSMIC
 InstInfo.COSMIC.FineGrid = [10,0.5,1/80];
 
+%limb data, split into regions
+InstInfo.limb_regions.FineGrid = [10,0.5,1/80];
+InstInfo.limb_regions.SubSetInString = ['_r',sprintf('%03d',Settings.SubSet)];
+
 %HIRDLS
 InstInfo.HIRDLS.FineGrid = [10,2,1/80];
 

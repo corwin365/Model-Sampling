@@ -13,18 +13,22 @@ addpath(genpath('../'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %dataset identifier
-Settings.Instrument = 'AIRS3D';
+Settings.Instrument = 'AIRS3D_fakedates';
 
 %where do the input files live?
 Settings.InDir = [LocalDataDir,'/AIRS/3d_airs'];
 
 %geolocation - which data should we include?
-%for all except HeightRange, we include any wholegranule including these
+%for all except HeightRange, we include any whole granule including these
 %for HeightRange, we will trim the granules in height to just this range
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.TimeRange   = datenum(2020,1,20):1:datenum(2020,3,1);
+% Settings.TimeRange   = datenum(2018,11,5):1:datenum(2018,11,5)
+Settings.TimeRange   = datenum(2022,1,20):1:datenum(2022,3,1);
 Settings.HeightRange = [20,60]; %km
+
+%dates to replace the real ones with
+Settings.ReplacementDates = datenum(2019,1,20:1:numel(Settings.TimeRange));
 
 %path handling internal to routine
 [~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
@@ -49,6 +53,8 @@ Fields.D3 = {'ret_temp'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
+
+  FakeDay = iDay-min(Settings.TimeRange)+min(Settings.ReplacementDates)
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   %find granules on this day in our geographic region
@@ -223,9 +229,6 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     ViewAngleZ = ViewAngleZ ./ max(abs(ViewAngleZ)); %normalised
     ViewAngleZ = ViewAngleZ .* 49.5; %degrees
 
-    %there is a small bug I need to pin down in the main code that has trouble dealing with ViewAngleZ *exactly* equal to 0
-    %as a temporary patch that will have no meaningful effect on the results, set these valeus to a nonzero value
-    ViewAngleZ(ViewAngleZ == 0) = 0.001;
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %save!
@@ -238,6 +241,10 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     Lon  = Data.l1_lon(:);
     ViewAngleH = ViewAngleH(:);
     ViewAngleZ = ViewAngleZ(:);
+
+
+    %replace the dates
+    Time = Time - iDay+FakeDay;
     
     %then into an array
     Track.Lat  = single(Lat);
@@ -249,8 +256,9 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     clear Lat Lon Prs Time
     
     %and save it
+    TrackDay = iDay;
 
-    save(OutFile,'Track','Recon','Weight');
+    save(OutFile,'Track','Recon','Weight','TrackDay');
     
     
     
