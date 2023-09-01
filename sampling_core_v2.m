@@ -197,7 +197,9 @@ end
 %convert obs pressure grid to log space, to make spacings more regular
 ObsGrid.Track.Prs = log10(ObsGrid.Track.Prs);
   
-disp([Instrument,' track loaded for ',datestr(DayNumber)]);
+if Settings.SubSet ~= 0; ExtraInfo = [' subset ',num2str(Settings.SubSet)]; else; ExtraInfo = ''; end
+disp([Instrument,' track loaded for ',datestr(DayNumber),ExtraInfo]);
+clear ExtraInfo
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% load and prep model data
@@ -259,6 +261,18 @@ else
     Model.Prs = Model.Prs(InPrsRange);
     Model.T   = Model.T(:,:,:,InPrsRange);
     clear InPrsRange
+    
+    %limit the analysis to only use height levels present in the model data
+    if 10.^max(Model.Prs) < Settings.MaxPrs
+      Settings.MaxPrsSet = Settings.MaxPrs;
+      Settings.MaxPrs    = round(10.^max(Model.Prs).*100)./100;
+      disp(['Changing Settings.MaxPrs to model data maximum value: now ',num2str(Settings.MaxPrs),' hPa. Original value retained as Settings.MaxPrsSet'])
+    end
+    if 10.^min(Model.Prs) > Settings.MinPrs
+      Settings.MinPrsSet = Settings.MinPrs;
+      Settings.MinPrs    = round(10.^min(Model.Prs).*100)./100;
+      disp(['Changing Settings.MinPrs to model data minimum value: now ',num2str(Settings.MinPrs),' hPa. Original value retained as Settings.MinPrsSet'])
+    end
 
     %make sure all variables increase montonically
     Fields = {'Time','Lon','Lat','Prs'}; %order is important - this is the same as the Model.T array
@@ -938,7 +952,7 @@ Output.Tsimple = reshape(Simple(Order),OutputSize');
 %put any set-aside fields back
 if exist('INSTSTORE','var'); 
   Output.Insts = INSTSTORE; 
-  Output.I = reshape(INSTID,OutputSize)'; 
+  Output.I = reshape(INSTID,OutputSize')'; 
 end
 
 
