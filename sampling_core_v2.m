@@ -265,12 +265,12 @@ else
     %limit the analysis to only use height levels present in the model data
     if 10.^max(Model.Prs) < Settings.MaxPrs
       Settings.MaxPrsSet = Settings.MaxPrs;
-      Settings.MaxPrs    = round(10.^max(Model.Prs).*100)./100;
+      Settings.MaxPrs    = round(10.^max(Model.Prs).*10000)./10000;
       disp(['Changing Settings.MaxPrs to model data maximum value: now ',num2str(Settings.MaxPrs),' hPa. Original value retained as Settings.MaxPrsSet'])
     end
     if 10.^min(Model.Prs) > Settings.MinPrs
       Settings.MinPrsSet = Settings.MinPrs;
-      Settings.MinPrs    = round(10.^min(Model.Prs).*100)./100;
+      Settings.MinPrs    = round(10.^min(Model.Prs).*10000)./10000;
       disp(['Changing Settings.MinPrs to model data minimum value: now ',num2str(Settings.MinPrs),' hPa. Original value retained as Settings.MinPrsSet'])
     end
 
@@ -912,18 +912,14 @@ function [Error,Output] = unified_reconstructor(ObsGrid,Final,Simple)
 
 Error = 1; %assume failure unless proved otherwise
 
+%create an output struct
+Output = struct();
 
-%sometimes we store a list of instruments in the recon. set this aside if so.
-if isfield(ObsGrid.Recon,'Insts'); 
-  INSTSTORE = ObsGrid.Recon.Insts; 
-  INSTID    = ObsGrid.Recon.I;
-  ObsGrid.Recon = rmfield(ObsGrid.Recon,{'Insts','I'});
-end
+%sometimes we store a list of instruments in the recon struct. move this to output if so.
+if isfield(ObsGrid.Recon,'Insts');  Output.Insts = ObsGrid.Recon.Insts; ObsGrid.Recon = rmfield(ObsGrid.Recon,'Insts'); end
 
 %what size should the output be?
 DimList = fieldnames(ObsGrid.Recon); 
-
-
 NDims = numel(DimList); OutputSize = NaN(NDims,1);
 for iDim=1:1:NDims; OutputSize(iDim) = max(ObsGrid.Recon.(DimList{iDim}));end; clear iDim
 
@@ -936,8 +932,8 @@ for iDim=2:1:NDims;  List = [List,ObsGrid.Recon.(DimList{iDim})]; end; clear iDi
 [~,Order] = sortrows(List,NDims:-1:1);
 
 %reshape the metadata
-Output = struct();
 Fields = {'Lat','Lon','Time','Prs'};
+if isfield(Output,'Insts'); Fields{end+1} = 'Inst'; end
 for iField=1:1:numel(Fields)
   Var = ObsGrid.Track.(Fields{iField});
   Var = reshape(Var(Order),OutputSize');
@@ -948,12 +944,6 @@ end; clear iField Var
 Output.T       = reshape( Final(Order),OutputSize');
 Output.Tsimple = reshape(Simple(Order),OutputSize');
 
-
-%put any set-aside fields back
-if exist('INSTSTORE','var'); 
-  Output.Insts = INSTSTORE; 
-  Output.I = reshape(INSTID,OutputSize')'; 
-end
 
 
 %done

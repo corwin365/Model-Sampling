@@ -23,7 +23,7 @@ Settings.Instrument = 'limb_regions';
 %for HeightRange, we will trim the granules in height to just this range
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.TimeRange   = datenum(2020,1,45);%:1:datenum(2020,1,20);
+Settings.TimeRange   = datenum(2020,1,21);%:1:datenum(2020,1,20);
 Settings.HeightScale = 5:0.1:50; %km
 
 Settings.LatStep = 30;
@@ -232,7 +232,6 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
   [z,x] = meshgrid(z,x);
   Recon.x = single(x(:));
   Recon.z = single(z(:));
-  Recon.I = Store.Inst(:);
   Recon.Insts = Instruments;
   clear x z Instruments
 
@@ -256,6 +255,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
   Track.T          = single(Store.Temp(:));
   Track.ViewAngleH = single(Store.Azim(:));
   Track.ViewAngleZ = single(Store.Vert(:));
+  Track.Inst       = single(Store.Inst(:));
 
   Weight.X = single(Store.X(:));
   Weight.Y = single(Store.Y(:));
