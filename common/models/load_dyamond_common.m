@@ -109,6 +109,8 @@ end
 clear Lookup
 
 
+
+
 %hence, find the files which cover the period in our data
 %we just need the closest timestep to the start and end and don't need to pad it
 %this is because the sampling won't interpolate, so only the closest points are used
@@ -177,7 +179,6 @@ Identifier = [strrep(num2str(datenum(now)),'.',''),'_',num2str(randi(1e6,[1]))];
 % Identifier = '';
 
 
-
 for iFile=1:1:numel(Files)
   for iSource=1:1:InnerLoop %only do second loop if we want to extract true pressure
     switch iSource
@@ -206,9 +207,9 @@ for iFile=1:1:numel(Files)
 
     %work out which timesteps this *observation* file covers. If none,find the single closest. 
     %Pad by 3 hours each way to make sure we're not *just* missing something.
-    InRange = find(TimeStore(iFile,:) <= max(ObsGrid.Track.Time(:)-3/24) ...
-                 & TimeStore(iFile,:) >= min(ObsGrid.Track.Time(:)+3/24));
-    if numel(InRange) == 0; [~,InRange] = min(abs(TimeStore(iFile,:)-mean(ObsGrid.Track.Time(:)))); end
+    InRange = find(TimeStore(iFile,:) <= nanmax(ObsGrid.Track.Time(:)-3/24) ...
+                 & TimeStore(iFile,:) >= nanmin(ObsGrid.Track.Time(:)+3/24));
+    if numel(InRange) == 0; [~,InRange] = min(abs(TimeStore(iFile,:)-nanmean(ObsGrid.Track.Time(:)))); end
 
     %if the number of timesteps is less than the total in the file, subset the file in time
     if numel(InRange) < size(TimeStore,2)
@@ -227,7 +228,6 @@ for iFile=1:1:numel(Files)
 
     %finalise the command with the names of the in and out files
     Command = [Command,' ',strrep(Files{iFile},'ta',Source),' ',TempFiles{iFile,iSource+1}];
-
     
     %and execute it
     if exist(TempFiles{iFile,iSource+1},'file'); continue; end %for testing with non-unique identifiers
@@ -261,12 +261,11 @@ for iFile=1:1:numel(Files)
   else
     %put the link to the T file in the first element of TempFiles
     TempFiles{iFile,1} = TempFiles{iFile,2};
-    TempFiles = TempFiles(1);
+    if iFile == numel(Files);TempFiles = TempFiles(:,1); end
   end
 
 end; clear iFile
 clear Range ff InRange Command status PrsFile 
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% great! Let's load the files and get what we need out of them
@@ -302,8 +301,8 @@ end; clear iFile
 
 
 disp(' ');disp(' ');
-for iFile=1:1:numel(TempFiles)
- delete(TempFiles{iFile})
+for iFile=1:1:size(TempFiles,1)
+ delete(TempFiles{iFile,1})
  disp(['Tidying up: ',TempFiles{iFile},' deleted'])
 end; clear iFile
 
@@ -350,7 +349,7 @@ if FixedPFlag ~= 1
 
 end
   
-
+  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% finally, permute the results to the desired output order
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

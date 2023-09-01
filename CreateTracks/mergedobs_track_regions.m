@@ -24,10 +24,10 @@ Settings.Instrument = 'limb_regions';
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
 Settings.TimeRange   = datenum(2020,1,45);%:1:datenum(2020,1,20);
-Settings.HeightScale = 20:0.1:80; %km
+Settings.HeightScale = 5:0.1:50; %km
 
-Settings.LatStep = 45;
-Settings.LonStep = 45;
+Settings.LatStep = 30;
+Settings.LonStep = 30;
 Settings.TimeStep = 3./24;
 
 %path handling internal to routine
@@ -222,8 +222,6 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     Store.(Fields{iField}) = F;
   end; clear iField F Bad
 
-stop
-
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %prepare the necessary information to reconstruct the granules from 1D data
   %and keep track of which instrument is which!
@@ -245,9 +243,9 @@ stop
 
 
   %we don't want profiles to be split across regions. create a geolocation array that is just a single lat and lon for each profile
-  RegionLat  = repmat(nanmean( Store.Lat,2),1,size( Store.Lat,2));
-  RegionLon  = repmat(nanmean( Store.Lon,2),1,size( Store.Lon,2));
-  RegionTime = repmat(nanmean(Store.Time,2),1,size(Store.Time,2));
+  RegionLat  = repmat(nanmedian( Store.Lat,2),1,size( Store.Lat,2));
+  RegionLon  = repmat(nanmedian( Store.Lon,2),1,size( Store.Lon,2));
+  RegionTime = repmat(nanmedian(Store.Time,2),1,size(Store.Time,2));
 
 
   %put data into a line, reduce to singles to save space, and put into the appropriate format
@@ -280,6 +278,7 @@ stop
   MasterWeight = Weight; clear Weight
 
 
+  disp('Generating output')
   SubSetCount = 0;
   for LonBand=min(Settings.LonRange):Settings.LonStep:max(Settings.LonRange)
     for LatBand=min(Settings.LatRange):Settings.LatStep:max(Settings.LatRange)

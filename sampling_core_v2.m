@@ -29,7 +29,7 @@ function [Error,OldData] = sampling_core_v2(Instrument,ModelName,DayNumber,varar
 
 %the master file path is not optional as it is used upstream. Set it here.
 %this is where all the track-input and sampled-output files live
-MasterPath = '/scratch/b/b382226/sampling';
+MasterPath = [LocalDataDir,'/corwin/sampling_project'];
 
 %get functions
 addpath(genpath('common/'));
@@ -938,7 +938,7 @@ Output.Tsimple = reshape(Simple(Order),OutputSize');
 %put any set-aside fields back
 if exist('INSTSTORE','var'); 
   Output.Insts = INSTSTORE; 
-  Output.I = reshape(INSTID,OutputSize'); 
+  Output.I = reshape(INSTID,OutputSize)'; 
 end
 
 
