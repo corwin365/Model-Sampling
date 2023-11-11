@@ -348,7 +348,6 @@ else
     %produce interpolant for each timestep
     %scatteredinterpolant only takes doubles, which is frustrating...
     for iTime=1:1:numel(Model.Time)
-      iTime
       F = scatteredInterpolant(double(Model.LonI(:)),double(Model.LatI(:)),double(Model.PrsI(:)), ...
                                double(squeeze(Model.TI(iTime,:)))');
       Interpolants.(['t',num2str(iTime)]) = F;
@@ -819,20 +818,3 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   InnerError = 0;
 
   end %this is the end of the inner (sampling core) function
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
