@@ -1,4 +1,4 @@
-function Model = load_1kmIFS(ObsGrid)
+function Model = load_1kmIFS(ObsGrid,BlobScale)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -25,26 +25,61 @@ TimeStep    = 1./24./60.*180; %one every three hours
 %load the data for this input grid
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%put obsgrid onto 0-360, same as the model, so we can subset correctly UNLIKE LAST TIME.
+%AGAIN, YOU'VE DONE THIS LOADS OF TIMES WRONG YOU MORON
+%relative geometry doesn't matter as it's just a list of points which we treat independently.
+ObsGrid.Track.Lon(ObsGrid.Track.Lon <0) = ObsGrid.Track.Lon(ObsGrid.Track.Lon < 0) + 360;
+
 %define timestep grid
 First = min(ObsGrid.Track.Time(:));
 Last  = max(ObsGrid.Track.Time(:));
 
-%put obsgrid onto 0-360, same as the model, so we can subset correctly UNLIKE LAST TIME.
-%relative geometry doesn't matter as it's just a list of points which we treat independently.
-ObsGrid.Track.Lon(ObsGrid.Track.Lon <0) = ObsGrid.Track.Lon(ObsGrid.Track.Lon < 0) + 360;
+%define range covered by the dataset in terms of measurement centre locations
+Range = NaN(5,4);
+Range(1,:) = [floor(min(ObsGrid.Track.Lon)),ceil(max(ObsGrid.Track.Lon)), ...
+              floor(min(ObsGrid.Track.Lat)),ceil(max(ObsGrid.Track.Lat))];
 
-%define range covered by the dataset, with a bit of padding (20% of the range on each side)
-Range = [floor(min(ObsGrid.Track.Lon(:))),ceil(max(ObsGrid.Track.Lon(:))), ...
-         floor(min(ObsGrid.Track.Lat(:))),ceil(max(ObsGrid.Track.Lat(:)))];
-Range = Range ...
-      + [-1,1,0,0].*0.2.*(max(Range([1,2])) - min(Range([1,2]))) ...
-      + [0,0,-1,1].*0.2.*(max(Range([3,4])) - min(Range([3,4])));
-if Range(1) <    0; Range(1) =    0; end   %THESE TWO LINES SHOULD BE FROM 0-360
-if Range(2) >  360; Range(2) =  360; end   %NOT -180 TO +180, BECAUSE I AM AN IDIOT.
+%find the maximum extra distance a blob could add to the edge of the region (with 25% padding)
+MaxDistance = max([ObsGrid.Weight.X;ObsGrid.Weight.Y]).*BlobScale.*1.25;
+
+%find where this puts the range, by taking a line diagonally from each corner
+Range(2,[4,2]) = reckon2(Range(1,4),Range(1,2),km2deg2(MaxDistance),45);
+Range(3,[3,2]) = reckon2(Range(1,3),Range(1,2),km2deg2(MaxDistance),135);
+Range(4,[3,1]) = reckon2(Range(1,3),Range(1,1),km2deg2(MaxDistance),225);
+Range(5,[4,2]) = reckon2(Range(1,4),Range(1,1),km2deg2(MaxDistance),315);
+
+r(1) = min(Range(:,[1,2]),[],'all');
+r(2) = max(Range(:,[1,2]),[],'all');
+r(3) = min(Range(:,[3,4]),[],'all');
+r(4) = max(Range(:,[3,4]),[],'all');
+Range = r; clear r BlobScale MaxDistance
+
+if Range(1) < -180; Range(1) = -180; end
+if Range(2) >  180; Range(2) =  180; end
 if Range(3) <  -90; Range(3) =  -90; end
 if Range(4) >   90; Range(4) =   90; end
 
-minnax
+
+% % % % % % 
+% % % % % % 
+% % % % % % 
+% % % % % % 
+% % % % % % %put obsgrid onto 0-360, same as the model, so we can subset correctly UNLIKE LAST TIME.
+% % % % % % %relative geometry doesn't matter as it's just a list of points which we treat independently.
+% % % % % % ObsGrid.Track.Lon(ObsGrid.Track.Lon <0) = ObsGrid.Track.Lon(ObsGrid.Track.Lon < 0) + 360;
+% % % % % % 
+% % % % % % %define range covered by the dataset, with a bit of padding (20% of the range on each side)
+% % % % % % Range = [floor(min(ObsGrid.Track.Lon(:))),ceil(max(ObsGrid.Track.Lon(:))), ...
+% % % % % %          floor(min(ObsGrid.Track.Lat(:))),ceil(max(ObsGrid.Track.Lat(:)))];
+% % % % % % Range = Range ...
+% % % % % %       + [-1,1,0,0].*0.2.*(max(Range([1,2])) - min(Range([1,2]))) ...
+% % % % % %       + [0,0,-1,1].*0.2.*(max(Range([3,4])) - min(Range([3,4])));
+% % % % % % if Range(1) <    0; Range(1) =    0; end   %THESE TWO LINES SHOULD BE FROM 0-360
+% % % % % % if Range(2) >  360; Range(2) =  360; end   %NOT -180 TO +180, BECAUSE I AM AN IDIOT.
+% % % % % % if Range(3) <  -90; Range(3) =  -90; end
+% % % % % % if Range(4) >   90; Range(4) =   90; end
+
+
 %generate a list of timesteps. 
 FirstStep = (First-BasisTime).*24.*60;
 LastStep  = (Last -BasisTime).*24.*60;
@@ -61,7 +96,7 @@ for Step=Steps
   %identify file
    FileName =  [ModelPath,'/',FileStringA,sprintf('%06d',Step),FileStringB];
 %   FileName =  [ModelPath,'/',FileStringA,FileStringB];
-         
+  FileName         
   %load file
   if ~exist(FileName,'file');
     FileName
@@ -69,8 +104,10 @@ for Step=Steps
     Model.Error = 2;
     return
   end
+  disp('before read')                                 
   Data = rCDF(FileName);  
-  
+  disp('after read')   
+
   %for testing
   % % Data = rCDF('C:\Data\ERA5\2010\era5_2010d002.nc');
   % % Data = load('C:\Data\ERA5\2010\era5_2010d002_360.mat');  

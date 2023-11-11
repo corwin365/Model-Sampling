@@ -1,14 +1,20 @@
-function [Error,OldData] = sampling_core_v2(Instrument,ModelName,DayNumber,varargin)
+function [Error,OldData] = sampling_core_v3(Instrument,ModelName,DayNumber,varargin)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %sample models and reanalyses with satellite scan tracks
 %
-%originally written 2019, extensively updated in February 2023 to make more
-%user-friendly and include several formerly-manual steps automatically. Not 
-%backwards-compatible to before this rewrite.
+%v1: originally written 2019, 
+% 
+%v2: extensively updated in February 2023 to make more user-friendly and include 
+%    several formerly-manual steps automatically. Not backwards-compatible to 
+%    before this rewrite.
 %
-%Corwin Wright, c.wright@bath.ac.uk, 2023/02/03
+%v3: modified heavily again to allow for more complex weighting functions. Should
+%    be backwards compatible to v2, but central logic has changed a fair bit.
+%
+%
+%Corwin Wright, c.wright@bath.ac.uk, 2023/11/11
 %
 %possible error states:
 %-1. unknown error (shouldn't occur)
@@ -64,13 +70,14 @@ addRequired(p,'DayNumber',   @isnumeric);
 addParameter(p, 'SensTestMode',  false,        @islogical);     %use sensitivity-testing mode? Note that this overrides many of these settings
 addParameter(p,      'Clobber',  false,        @islogical);     %overwrite previous output filess (assume no)
 addParameter(p,     'Parallel',  false,        @islogical);     %parallel or linear mode? (assumes single-threaded)
-addParameter(p,   'TextUpdate',  false,        @islogical);     %display progress of inner sampling loop to screen in linear mode? (no)
+addParameter(p,   'TextUpdate',   true,        @islogical);     %display progress of inner sampling loop to screen in linear mode? (yes)
 addParameter(p,  'IncludeNaNs',   true,        @islogical);     %if a measurement blob includes NaNs or goes off the edge of the field, do we include it in the result? Useful for e.g. limited-area model runs; if set, output field can include partially-sampled blobs (yes)
 addParameter(p,  'GetSettings',  false,        @islogical);     %just get the settings generated here and return it in the 'OldData' field
 addParameter(p, 'ScatteredInt',  false,        @islogical);     %use for model data not on a regular lon/lat/prs/t grid. This takes MUCH longer, so don't do it unnecessarily, but can save memory for irregularly-gridded models and may be slightly more accurate for such models.
+addParameter(p,  'SaveSingles',   true,        @islogical);     %convert outputs to single() rather than double() to save filespace. Will skip time variables.
 
 %numeric values
-addParameter(p,  'ReportEvery',  10000,  IsPositiveInteger);     %if TextUpdate is set, update to screen how often (in samples)?
+addParameter(p,  'ReportEvery',   1000,  IsPositiveInteger);     %if TextUpdate is set, update to screen how often (in samples)?
 addParameter(p,      'MinPrs' ,      0,         IsPositive);     %minimum pressure level, i.e. top height. If set to zero, uses model top
 addParameter(p,      'MaxPrs' ,   1100,         IsPositive);     %maximum pressure level, i.e. bottom height.
 addParameter(p,       'SubSet',      0,  IsPositiveInteger);     %which subfile within the specified day to work on - used e.g. for AIRS granule numbers
@@ -85,8 +92,9 @@ addParameter(p,'DensityPath','./common/saber_density_filled.mat',@isfile);   %pa
 addParameter(p,    'OutPath',                          'NOTSET', @isfolder); %output file. will be generated automatically below if set to 'NOTSET' or not supplied
  
 %arbitrary numbers used in the code. Most defaults have been selected via sensivity testing using 3D AIRS data.
-addParameter(p,    'MinSignal' ,  0.99,        IsPositive);     %fraction of total signal needed to produce final sample
-addParameter(p,    'BlobScale' ,     3,        IsPositive);     %number of standard deviations to compute sensitivity out to (+- from centre)
+addParameter(p,     'MinSignal',  0.99,        IsPositive);     %fraction of total signal needed to produce final sample
+addParameter(p, 'SpecWeightMin',  0.01,        IsPositive);     %when using specified weighting function, discard any values contributing less than this times the maximum
+addParameter(p,     'BlobScale',     3,        IsPositive);     %number of standard deviations to compute sensitivity out to (+- from centre)
 addParameter(p,   'MinZContrib',  0.02,        IsPositive);     %when rotating, discard vertical levels contributing less fractional weight than this
 addParameter(p,      'ZPadding',   0.5,        IsPositive);     %when rotating, vertical padding in decades of pressure
 
@@ -196,6 +204,25 @@ end
 
 %convert obs pressure grid to log space, to make spacings more regular
 ObsGrid.Track.Prs = log10(ObsGrid.Track.Prs);
+
+%for backwards compatability: if we don't have a weight format, use 'gaussian'.
+
+if ~isfield(ObsGrid.Weight,'Format'); ObsGrid.Weight.Format = repmat({'gaussian'},size(ObsGrid.Track.Lat)); end
+
+%if any of the instruments we're sampling have a specified weight field, load it now to avoid duplication in-loop
+if find(contains(ObsGrid.Weight.Format,'specified_2d'))
+  Ws = unique(ObsGrid.Weight.Format);
+  for iW=1:1:numel(Ws)
+    W = Ws{iW};
+    if length(W) > 12 && strcmp(W(1:12),'specified_2d');
+      ObsGrid.WeightMatrix.XZ.(W(14:end)) = rCDF(ObsGrid.Params.(W(14:end)).WeightDetails.File);
+      % ObsGrid.WeightMatrix.XZ.(W(14:end)).avk = smoothn(ObsGrid.WeightMatrix.XZ.(W(14:end)).avk,[1,1,11]);
+      ObsGrid.WeightMatrix.Y.(W(14:end))  =      ObsGrid.Params.(W(14:end)).WeightDetails.Y;
+    end
+  end
+  clear Ws iW W
+end
+
   
 if Settings.SubSet ~= 0; ExtraInfo = [' subset ',num2str(Settings.SubSet)]; else; ExtraInfo = ''; end
 disp([Instrument,' track loaded for ',datestr(DayNumber),ExtraInfo]);
@@ -468,7 +495,7 @@ disp(['Sampling complete for ',ModelName,' as ',Instrument,' on ',datestr(DayNum
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %call the reconstructor to convert from a list of points to a formatted set of fields
-[~,Sampled_Data] = unified_reconstructor(ObsGrid,FinalT,SimpleT);
+[~,Sampled_Data] = unified_reconstructor(Settings,ObsGrid,FinalT,SimpleT);
 
 %save end time so we know how long it all took (especially useful for sensitivity testing!)
 RunTime.End = datenum(now);
@@ -502,16 +529,6 @@ end% this is the end of the main function
 
 
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% FUNCTIONS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -542,19 +559,15 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   assuming a high level of trust between parent and child), but exist for debugging.
   %}
 
+
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-  %set some placeholder values
+  %set some placeholder values for if the function need to exit
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
   %output handling
   InnerError = 1; %assume an error unless the function runs successfully
   TSample = NaN;
   TSimple = NaN;
-
-  %internal use
-  Channel = [];
-  Wx      = [];   
-  Wy      = [];  
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   %upate progress to screen
@@ -570,7 +583,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %let's go!
   %first, where are we?
-  %get geolocation and measurement properties
+  %get geolocation and angular parameters
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   Sample = struct();
@@ -582,15 +595,9 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   Sample.AngleH  = ObsGrid.Track.ViewAngleH(iSample);
   Sample.AngleZ  = ObsGrid.Track.ViewAngleZ(iSample);
 
-  Sample.WeightX = ObsGrid.Weight.X(        iSample);
-  Sample.WeightY = ObsGrid.Weight.Y(        iSample);
-  Sample.WeightZ = ObsGrid.Weight.Z(        iSample);
-  
-  
   %safety-check that none of the above are NaN
   if isnan(Sample.Lon     + Sample.Lat     + Sample.Prs + Sample.Time ...
-         + Sample.AngleH  + Sample.AngleZ                             ...
-         + Sample.WeightX + Sample.WeightY + Sample.WeightZ           ...      
+         + Sample.AngleH  + Sample.AngleZ                             ...   
           ); InnerError = 2;return; 
   end
    
@@ -601,113 +608,43 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   if Sample.Prs > log10(Settings.MaxPrs); InnerError = 4;return; end  
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  %produce the fine sampling grid
-  %this is the grid the actual sampling will be done on
+  %compute the weighting parameters. This varies depending on the format used.
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  %declare a struct to keep the grids in
-  Fine = struct();
-  
-  %creating the grid in the horizontal is easy
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  Fine.X = -Settings.BlobScale*Sample.WeightX : Settings.FineGrid(1) : Settings.BlobScale*Sample.WeightX;
-  Fine.Y = -Settings.BlobScale*Sample.WeightY : Settings.FineGrid(2) : Settings.BlobScale*Sample.WeightY;
-  
-  %for the vertical, we're working in pressure co-ordinates, so this is fiddly
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  %most instruments are a simple Gaussian in height
-  %these are specified in the track generator functions as having *POSITIVE* Sample.WeightZ values
-  %so create a height window accordingly
-  if Sample.WeightZ >= 0
-    %first, find approx height of the measurement-centre pressure level
-    z = p2h(10.^Sample.Prs);    
-    %next, find height above and below this that we want, and convert to log-P
-    z = (Settings.BlobScale*[-1,1].*Sample.WeightZ)+z;
-    z = log10(h2p(z));  
+  WeightType = ObsGrid.Weight.Format{iSample};
+
+  if strcmpi(WeightType,'gaussian');
+
+    %'classic' set of 1D gaussians for each dimension. Easy.
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    %get the weight values
+    Sample.WeightX = ObsGrid.Weight.X(iSample);
+    Sample.WeightY = ObsGrid.Weight.Y(iSample);
+    Sample.WeightZ = ObsGrid.Weight.Z(iSample);
+
+    %safety-check that none of the above are NaN
+    if isnan(Sample.WeightX + Sample.WeightY + Sample.WeightZ); InnerError = 2;return;  end
+
+    %compute the fine grid and weights thereon
+    [Fine,W] = gaussian_blob(Sample,Settings);
+
+  elseif strcmp(WeightType(1:12),'specified_2d')
+
+    %a specified 2D field in the aLOS and z direction,
+    %with a cross-track Gaussian rolloff
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    %identify kernel to use
+    Instrument = ObsGrid.Weight.Format{iSample}; Instrument = Instrument(14:end);
+
+    %compute the fine grid and weights thereon
+    [Fine,W] = specified_2d(Sample,ObsGrid,Instrument,Settings);
+
   else
-    %some instruments are more complex than just a simple Gaussian
-    %these are specified with a *NEGATIVE* Sample.WeightZ
-    %the (integer) values of this tells us which of a pre-defined set of functions to use
-    %from those stored in the source file
-    
-    %identify which channel we want.
-    Channel = struct();
-    Channel.ID = abs(Sample.WeightZ);
-    
-    Channel.Prs = log10(ObsGrid.Weight.ZFuncs.PrsScale);
-    Channel.W   = ObsGrid.Weight.ZFuncs.Weights(Channel.ID,:); %keep for later  
-
-    %discard parts that contribute very little
-    Channel.W(Channel.W < Settings.MinZContrib.*sum(Channel.W(:)),'omitnan') = 0;
-
-    %set NaNs to zero
-    Channel.W(isnan(Channel.W)) = 0;
-    
-    %remove low altitudes
-    GoodPrs = find(Channel.Prs < log10(Settings.MaxPrs));
-    Channel.W   = Channel.W(   GoodPrs);
-    Channel.Prs = Channel.Prs(GoodPrs);
-    
-    %find highest and lowest prs level remaining
-    z = Channel.Prs(find(Channel.W > 0));
-    z = [max(z),min(z)]+[1,-1].*Settings.ZPadding;
+    error('Invalid format for weighting functions, terminating')
   end
 
-  %hence:
-  Fine.Prs = single(z(2):Settings.FineGrid(3):z(1));
-
-
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  %generate the weighting blob
-  %we're going to use the following coord frame for this:
-  % X is along-track (i.e. major volume axis in horizontal plane)
-  % Y is across-track (i.e minor axis)
-  % Z is vertical
-  %we'll later rotate the coord frame appropriately for the viewing angle
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  %1d along-track weight
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  if Sample.WeightX > 0  %simple Gaussian approximation
-    Wx = normpdf(Fine.X,0,Sample.WeightX);
-  else %not a simple Gaussian - produce from supplied information
-    disp('Attempting to use fixed cross-track weighting function but code is not set up to handle this, yet stopping')
-    stop %not written yet, as no such cases implemented
-  end  
-  
-  %1d across-track weight
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  if Sample.WeightY > 0  %simple Gaussian approximation
-    Wy = normpdf(Fine.Y,0,Sample.WeightY);
-  else %not a simple Gaussian - produce from supplied information
-    disp('Attempting to use fixed along-track weighting function but code is not set up to handle this yet, stopping')
-    stop %not written yet, as no such cases implemented 
-  end  
-
-  %1d vertical weight
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  if Sample.WeightZ >= 0  %simple Gaussian approximation
-    z = p2h(10.^Fine.Prs);  
-    Wz = normpdf(z,p2h(10.^Sample.Prs),Sample.WeightZ);
-  else %not a simple Gaussian - interpolate from supplied information
-    Wz = interp1(p2h(10.^Channel.Prs),Channel.W,p2h(10.^Fine.Prs),'linear','extrap');
-  end  
-  
-  %multiply them together to create a 3D blob
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  %order of indexing will seem odd if you're unfamiliar with Matlab
-  %don't blame me...
-  Wx = repmat(Wx',1,numel(Fine.Y),numel(Fine.Prs));
-  Wy = repmat(Wy,numel(Fine.X),1,numel(Fine.Prs));
-  Wz = repmat(permute(Wz',[2,3,1]),numel(Fine.X),numel(Fine.Y),1); 
-  W = Wx.*Wy.*Wz;
-  [Fine.Y,Fine.X,Fine.Prs] = meshgrid(Fine.Y,Fine.X,Fine.Prs);
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %cut data down to reduce interpolation requirements
@@ -719,9 +656,9 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   %because it reduces the number of points computed in all subsequent steps
   
   %first, sort the weight points
-  [WSort,Widx]  = sort(W(:),'descend');
+  [WSort,Widx]  = sort(abs(W(:)),'descend');
   %find the cumulative sum
-  WSort = cumsum(WSort);
+  WSort = cumsum(abs(WSort));
   %find where it crosses our required level
   [~,Cidx] = min(abs(WSort-max(WSort).*Settings.MinSignal));
   %and keep only these points
@@ -777,7 +714,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
     %4. correct for density
     %angles are defined a/c/w from nadir
     
-    %extract correct dayof-year of density
+    %extract correct date's density. After the end of the SABER density file it will just use the LAST date present there.
     [~,dayidx] = min(abs(Density.DayScale-Sample.Time));
     D = Density.Density(dayidx,:);    
      
@@ -890,65 +827,12 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% reconstructor - puts the data into a human-readable shape
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-function [Error,Output] = unified_reconstructor(ObsGrid,Final,Simple)
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%converts sampled results from list of points to an array in 
-%the same format as the original data
-%
-%Corwin Wright, c.wright@bath.ac.uk, 03/Feb/2023
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-Error = 1; %assume failure unless proved otherwise
-
-%create an output struct
-Output = struct();
-
-%sometimes we store a list of instruments in the recon struct. move this to output if so.
-if isfield(ObsGrid.Recon,'Insts');  Output.Insts = ObsGrid.Recon.Insts; ObsGrid.Recon = rmfield(ObsGrid.Recon,'Insts'); end
-
-%what size should the output be?
-DimList = fieldnames(ObsGrid.Recon); 
-NDims = numel(DimList); OutputSize = NaN(NDims,1);
-for iDim=1:1:NDims; OutputSize(iDim) = max(ObsGrid.Recon.(DimList{iDim}));end; clear iDim
-
-%order list of dimensions from largest number of elements to smallest (arbitrary, but I want something stable)
-[OutputSize,idx] = sort(OutputSize,'desc');DimList = DimList(idx); clear idx
-
-%work out where each data point goes
-List = ObsGrid.Recon.(DimList{1});
-for iDim=2:1:NDims;  List = [List,ObsGrid.Recon.(DimList{iDim})]; end; clear iDim
-[~,Order] = sortrows(List,NDims:-1:1);
-
-%reshape the metadata
-Fields = {'Lat','Lon','Time','Prs'};
-if isfield(Output,'Insts'); Fields{end+1} = 'Inst'; end
-for iField=1:1:numel(Fields)
-  Var = ObsGrid.Track.(Fields{iField});
-  Var = reshape(Var(Order),OutputSize');
-  Output.(Fields{iField}) = Var;
-end; clear iField Var
-
-%reshape the output data
-Output.T       = reshape( Final(Order),OutputSize');
-Output.Tsimple = reshape(Simple(Order),OutputSize');
 
 
 
-%done
-Error = 0;
-return
 
-end
+
+
+
+
 

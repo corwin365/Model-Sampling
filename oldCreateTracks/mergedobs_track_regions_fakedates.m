@@ -16,19 +16,24 @@ addpath(genpath('../'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %dataset identifier
-Settings.Instrument = 'limb_regions';
+Settings.Instrument = 'limb_regions_fakedates';
 
 %geolocation - which data should we include?
 %for all except HeightRange, we include any wholegranule including these
 %for HeightRange, we will trim the granules in height to just this range
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.TimeRange   = datenum(2020,1,21);%:1:datenum(2020,1,20);
+Settings.TimeRange   = datenum(2020,1,40:1:47); %these are the days to use FROM THE MODEL
 Settings.HeightScale = 5:0.1:50; %km
+
+%date to take the sampling patterns from, will be used to replace the real one
+%must be same length as the true date array
+Settings.PatternDates = (0:1:(numel(Settings.TimeRange)-1))+datenum(2007,1,40);
+
 
 Settings.LatStep = 30;
 Settings.LonStep = 30;
-Settings.TimeStep = 3./24;
+Settings.TimeStep = 4./24;
 
 %path handling internal to routine
 [~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
@@ -44,8 +49,8 @@ clear CoreSettings
 %GNSS
 Settings.Inst.GNSS.ExtraVars = {'Azim'};
 
-% %HIRDLS
-% Settings.Inst.HIRDLS.ExtraVars = {};
+%HIRDLS
+Settings.Inst.HIRDLS.ExtraVars = {};
 
 %MLS
 Settings.Inst.MLS.ExtraVars = {'LineOfSightAngle'};
@@ -81,15 +86,23 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
   %% import data
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 
+  %identify fake date
+  PatternDay = Settings.PatternDates(iDay-min(Settings.TimeRange)+1);
+  disp(['****Using sampling pattern from ',datestr(PatternDay),'****'])
+
+
+
   Instruments = fieldnames(Settings.Inst);
   clear Store
   for iInst=1:1:numel(Instruments)
 
     disp(['Loading ',Instruments{iInst}])
-    % try; 
-      Data =  get_limbsounders(iDay,Instruments{iInst},'HeightScale',Settings.HeightScale, ...
-                                                       'AdditionalVars',Settings.Inst.(Instruments{iInst}).ExtraVars);
-    % catch; continue; end
+    Data =  get_limbsounders(PatternDay,Instruments{iInst},'HeightScale',Settings.HeightScale, ...
+                                                           'AdditionalVars',Settings.Inst.(Instruments{iInst}).ExtraVars ...
+                                                           );
+    Data.Time = Data.Time - min(Settings.PatternDates)+min(Settings.TimeRange);
+    disp('****dates swapped for this dataset****')
+
     if numel(Data.Temp) == 0; continue; end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -240,7 +253,6 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
   %prep data for output
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
 
-
   %we don't want profiles to be split across regions. create a geolocation array that is just a single lat and lon for each profile
   RegionLat  = repmat(nanmedian( Store.Lat,2),1,size( Store.Lat,2));
   RegionLon  = repmat(nanmedian( Store.Lon,2),1,size( Store.Lon,2));
@@ -268,10 +280,10 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
   clear Store
 
 
-
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
   %now divide up into regions, and save
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
 
   MasterTrack  = Track;  clear Track
   MasterRecon  = Recon;  clear Recon
@@ -284,9 +296,9 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     for LatBand=min(Settings.LatRange):Settings.LatStep:max(Settings.LatRange)
       for TimeBand=iDay:Settings.TimeStep:iDay+1
 
-        InRange.Lon  = inrange(RegionLon,  LonBand+[0,Settings.LonStep ]);
-        InRange.Lat  = inrange(RegionLat,  LatBand+[0,Settings.LatStep ]);
-        InRange.Time = inrange(RegionTime,TimeBand+[0,Settings.TimeStep]);
+        InRange.Lon  = inrange(RegionLon,  LonBand+[0,Settings.LonStep ],2);
+        InRange.Lat  = inrange(RegionLat,  LatBand+[0,Settings.LatStep ],2);
+        InRange.Time = inrange(RegionTime,TimeBand+[0,Settings.TimeStep],2);
 
         idx = intersect(intersect(InRange.Lon,InRange.Lat),InRange.Time);
         if numel(idx) == 0; continue; end
@@ -298,6 +310,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
 
         %reconstruction needs some manipulation to make the profiles indices increase sequentially
         Recon  = reduce_struct(MasterRecon, idx,{'Insts'});
+        Recon.PatternDay = PatternDay;
         [~,~,Recon.x] = unique(Recon.x);
 
         %save
@@ -306,12 +319,9 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
       end
     end
   end
-  clear LonBand LatBand TimeBand
-
 
   %tidy up, then done
-  clear Track DayFile
-
+  clearvars -except Settings iDay
   disp([datestr(iDay),' complete'])
 end; clear iDay
 

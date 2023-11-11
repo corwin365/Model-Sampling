@@ -37,7 +37,7 @@ ModelInfo.ecmwf_issi.Arguments = 'ObsGrid';
 
 %ERA5 reanalysis
 ModelInfo.era5.FuncName  = 'load_era5';
-ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs,Settings.TallMode';
+ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs';
 
 %ERA-Interim reanalysis
 ModelInfo.erai.FuncName  = 'load_erai';
@@ -82,6 +82,19 @@ ModelInfo.dyamond_geos3km.FuncName  = 'load_dyamond_common';
 ModelInfo.dyamond_geos3km.Arguments = 'ObsGrid,WantedModel,FixedPFlag,Settings.BlobScale';
 ModelInfo.dyamond_geos3km.WantedModel = 'geos3km';
 ModelInfo.dyamond_geos3km.FixedPFlag  = 1;
+
+
+%DYAMOND-WINTER 1.5km GEOS run
+ModelInfo.dyamond_geos1p5km.FuncName  = 'load_dyamond_common';
+ModelInfo.dyamond_geos1p5km.Arguments = 'ObsGrid,WantedModel,FixedPFlag,Settings.BlobScale';
+ModelInfo.dyamond_geos1p5km.WantedModel = 'geos1p5km';
+ModelInfo.dyamond_geos1p5km.FixedPFlag  = 1;
+
+%DYAMOND-WINTER 4.km IFS run
+ModelInfo.dyamond_ifs4km.FuncName  = 'load_dyamond_common';
+ModelInfo.dyamond_ifs4km.Arguments = 'ObsGrid,WantedModel,FixedPFlag,Settings.BlobScale';
+ModelInfo.dyamond_ifs4km.WantedModel = 'ifs4km';
+ModelInfo.dyamond_ifs4km.FixedPFlag  = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OK, call the model data

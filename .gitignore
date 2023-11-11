@@ -3,5 +3,4 @@
 *.nc
 *.pptx
 *.pdf
-generate_levante_slurm.m
-generate_levante_slurm_catcher.m
+scripts/*

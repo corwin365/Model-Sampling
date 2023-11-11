@@ -15,14 +15,14 @@ addpath(genpath('../'));
 Settings.Instrument = 'HIRDLS';
 
 %where do the input files live?
-Settings.InDir = [LocalDataDir,'/HIRDLS'];
+Settings.InDir = [LocalDataDir,'/HIRDLS/raw/'];
 
 %geolocation - which data should we include?
 %for all except HeightRange, we include any wholegranule including these
 %for HeightRange, we will trim the granules in height to just this range
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.TimeRange   = [1,1].*datenum(2007,1,2);
+Settings.TimeRange   = [1,1].*datenum(2007,1,1);
 Settings.HeightRange = [0,80]; %km
 
 %path handling internal to routine

@@ -23,7 +23,7 @@ Settings.InDir = [LocalDataDir,'/AIRS/3d_airs'];
 %for HeightRange, we will trim the granules in height to just this range
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.TimeRange   = datenum(2020,1,20):1:datenum(2020,3,1);
+Settings.TimeRange   = datenum(2020,1,20):1:datenum(2020,1,20);
 Settings.HeightRange = [20,60]; %km
 
 %path handling internal to routine
@@ -58,7 +58,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
   List = List(:,2);
 
   %loop over them
-  for jGranule=1:1:240%numel(List);
+  for jGranule=1%:1:240%numel(List);
     try
   % for jGranule=1:1:numel(List);
     iGranule = List(jGranule);

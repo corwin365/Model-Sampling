@@ -23,12 +23,12 @@ Settings.InDir = [LocalDataDir,'/AIRS/3d_airs'];
 %for HeightRange, we will trim the granules in height to just this range
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-% Settings.TimeRange   = datenum(2018,11,5):1:datenum(2018,11,5)
-Settings.TimeRange   = datenum(2022,1,20):1:datenum(2022,3,1);
-Settings.HeightRange = [20,60]; %km
+Settings.TimeRange   = datenum(2020,1,20:1:60); %these are the days to use FROM THE MODEL
+Settings.HeightRange = [0,60]; %km
 
-%dates to replace the real ones with
-Settings.ReplacementDates = datenum(2019,1,20:1:numel(Settings.TimeRange));
+%date to take the sampling patterns from, will be used to replace the real one
+%must be same length as the true date array
+Settings.PatternDates = (0:1:(numel(Settings.TimeRange)-1))+datenum(2007,1,20);
 
 %path handling internal to routine
 [~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
@@ -54,18 +54,21 @@ Fields.D3 = {'ret_temp'};
 
 for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
 
-  FakeDay = iDay-min(Settings.TimeRange)+min(Settings.ReplacementDates)
+  %identify fake date
+  PatternDay = Settings.PatternDates(iDay-min(Settings.TimeRange)+1);
+  disp(['****Using sampling pattern from ',datestr(PatternDay),'****'])
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   %find granules on this day in our geographic region
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  List = find_airs_overpasses(iDay+[0,1],Settings.LonRange,Settings.LatRange,[0,0],1);
+  List = find_airs_overpasses(PatternDay+[0,1-(3/24/60/60)],Settings.LonRange,Settings.LatRange,[0,0],1);
   List = List(:,2);
 
   %loop over them
-  for jGranule=1:1:240%numel(List);
-    try
+  
+  for jGranule=1:1:numel(List);
+    % try
   % for jGranule=1:1:numel(List);
     iGranule = List(jGranule);
     
@@ -78,7 +81,8 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
 
     %and generate the file name
     OutFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(iDay),'_g',sprintf('%03d',iGranule),'.mat'];
-    
+    if exist(OutFile); continue; end
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %import data
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -86,15 +90,15 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     %find file holding the data for this day, and import it
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    [y,~,~] = datevec(iDay);
-    dayno = date2doy(iDay);
+    [y,~,~] = datevec(PatternDay);
+    dayno = date2doy(PatternDay);
     
     DataDir = [Settings.InDir,'/',sprintf('%04d',y),'/',sprintf('%03d',dayno)];
     File = wildcardsearch(DataDir,['*_',sprintf('%03d',iGranule),'.nc']);
-    if numel(File) == 0;
-      disp([datestr(iDay),', granule ',sprintf('%03d',iGranule),' NOT PRESENT'])
-      continue
-    end
+    % if numel(File) == 0;
+    %   disp([datestr(iDay),', granule ',sprintf('%03d',iGranule),' NOT PRESENT'])
+    %   continue
+    % end
     
     %load file
     Data = rCDF(File{1});
@@ -170,6 +174,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     Recon.x = x(:);
     Recon.y = y(:);
     Recon.z = z(:);
+    Recon.PatternDay = PatternDay;
     clear x y z
     
     %make the original data match in order
@@ -244,7 +249,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
 
 
     %replace the dates
-    Time = Time - iDay+FakeDay;
+    Time = Time - floor(Time)+iDay;
     
     %then into an array
     Track.Lat  = single(Lat);
@@ -255,17 +260,14 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     Track.ViewAngleH = single(ViewAngleH);
     clear Lat Lon Prs Time
     
-    %and save it
-    TrackDay = iDay;
 
-    save(OutFile,'Track','Recon','Weight','TrackDay');
-    
+    save(OutFile,'Track','Recon','Weight');
     
     
     %tidy up, then done
     clear Track DayFile
     disp([datestr(iDay),', granule ',sprintf('%03d',iGranule),' complete'])
-    catch; end
+    % catch; end
 
   end; clear iGranule
 end; clear iDay

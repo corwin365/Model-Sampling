@@ -40,11 +40,12 @@ InstInfo.COSMIC.FineGrid = [10,0.5,1/80];
 InstInfo.limb_regions.FineGrid = [10,0.5,1/80];
 InstInfo.limb_regions.SubSetInString = ['_r',sprintf('%03d',Settings.SubSet)];
 
+%limb data, split into regions and with fake dates
+InstInfo.limb_regions_fakedates.FineGrid = [10,0.5,1/80];
+InstInfo.limb_regions_fakedates.SubSetInString = ['_r',sprintf('%03d',Settings.SubSet)];
+
 %HIRDLS
 InstInfo.HIRDLS.FineGrid = [10,2,1/80];
-
-% % % % %SABER
-% % % % InstInfo.SABER.FineGrid = [10,2,1/80];
 
 %AIRS (2D)
 InstInfo.AIRS.FineGrid = [2,3,1/20];
@@ -53,6 +54,12 @@ InstInfo.AIRS.FineGrid = [2,3,1/20];
 InstInfo.AIRS3D.FineGrid = [1,1,1/20];
 InstInfo.AIRS3D.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
 
+%AIRS (3D) with fake dates
+InstInfo.AIRS3D_fakedates.FineGrid = [1,1,1/20];
+InstInfo.AIRS3D_fakedates.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
+
+%temporary test
+InstInfo.limb_regions_fakedates_half = InstInfo.limb_regions_fakedates;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %process and return
