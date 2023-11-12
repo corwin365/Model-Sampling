@@ -23,7 +23,7 @@ Settings.InDir = [LocalDataDir,'/AIRS/3d_airs'];
 %for HeightRange, we will trim the granules in height to just this range
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.TimeRange   = datenum(2020,1,20:1:60); %these are the days to use FROM THE MODEL
+Settings.TimeRange   = datenum(2020,1,20:1:22); %these are the days to use FROM THE MODEL
 Settings.HeightRange = [0,60]; %km
 
 %date to take the sampling patterns from, will be used to replace the real one
@@ -31,7 +31,7 @@ Settings.HeightRange = [0,60]; %km
 Settings.PatternDates = (0:1:(numel(Settings.TimeRange)-1))+datenum(2007,1,20);
 
 %path handling internal to routine
-[~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
+[~,CoreSettings] = sampling_core_v3(' ',' ',0,'GetSettings',true);
 Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
 clear CoreSettings
 
@@ -67,7 +67,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
 
   %loop over them
   
-  for jGranule=1:1:numel(List);
+  for jGranule=1%:1:numel(List);
     % try
   % for jGranule=1:1:numel(List);
     iGranule = List(jGranule);

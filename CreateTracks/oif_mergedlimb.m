@@ -114,7 +114,7 @@ if sum(DatesExist) == 2;
 end
 if sum(DatesExist) == 1;
   if DatesExist(1) == 1; Settings.Dates.Sampling = Settings.Dates.Geolocation;
-  else                   Settings.Dates.Geolocation = Settings.Dates.Sampling;
+  else;                  Settings.Dates.Geolocation = Settings.Dates.Sampling;
   end
 end
 clear DatesExist
@@ -125,7 +125,9 @@ clear DatesExist
 
 for iDay=1:1:numel(Settings.Dates.Geolocation)
 
-  disp(['Producing OIF data for ', datestr(Settings.Dates.Geolocation(iDay)),' with ',datestr(Settings.Dates.Sampling(iDay)),' sampling dates'])
+  if Settings.Dates.Geolocation(iDay) ~= Settings.Dates.Sampling(iDay); disp(['Producing OIF data for ', datestr(Settings.Dates.Geolocation(iDay)),' with ',datestr(Settings.Dates.Sampling(iDay)),' sampling dates'])
+  else;                                                                 disp(['Producing OIF data for ', datestr(Settings.Dates.Geolocation(iDay))])
+  end
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -214,7 +216,7 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
         for Dim={'X','Y','Z'};
           w = Params.(Settings.Instruments{iInst}).WeightDetails.(Dim{1});
           if size(w,1) == 1; Weight.(Dim{1}) = single(ones(size(Data.Lat))).*w(2);
-          else               Weight.(Dim{1}) = repmat(interp1(w(:,1),w(:,2),nanmean(Data.Alt,1)),size(Data.Lat,1),1);
+          else;              Weight.(Dim{1}) = repmat(interp1(w(:,1),w(:,2),nanmean(Data.Alt,1)),size(Data.Lat,1),1);
           end
         end; clear Dim w
 
@@ -308,7 +310,7 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
   SubSetCount = 0;
   for LonBand=min(Settings.LonRange):Settings.Subsets(1):max(Settings.LonRange)
     for LatBand=min(Settings.LatRange):Settings.Subsets(2):max(Settings.LatRange)
-      for TimeBand=(Settings.Dates.Geolocation(iDay):Settings.Subsets(3)./24:Settings.Dates.Geolocation(iDay)+1) 
+      for TimeBand=(Settings.Dates.Geolocation(iDay):Settings.Subsets(3)/24:Settings.Dates.Geolocation(iDay)+1) 
 
         %increment file counter
         SubSetCount = SubSetCount+1;        
@@ -330,9 +332,8 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
         Weight = reduce_struct(Store.Weight,idx,{},0);
 
         %split into:
-        % Recon: reconstruction data, to put the profiles back together
-        % Track: track data, for computing how to sample
-        % Meta:  metadata for interpreting the final results with
+        % Recon: ONLY profile reconstruction data, to put the profiles back together
+        % Track: track data, for computing how to sample, and also metadata for postprocessing
         %we'll also save 'Params', as it's used in some weight calculations
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -346,15 +347,9 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
         %retain the original profile numbers in 'Meta' anyway
         [~,~,Recon.x] =unique(Recon.x); [~,~,Recon.z] =unique(Recon.z);
 
-        % % % Meta  = struct();
         Track.PatternDay = Settings.Dates.Geolocation(iDay); %what day did the geolocation data come from?
         Track.InstNames = Settings.Instruments';
-        % % % Fields = {'SourceProf','SourceFile','OriginalFiles','Inst'};
-        % % % for iF=1:1:numel(Fields)
-        % % %   Meta.(Fields{iF}) = Track.(Fields{iF});
-        % % %   Track = rmfield(Track,Fields{iF});
-        % % % end
-        % % % clear Fields iF
+
 
         %save track file
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

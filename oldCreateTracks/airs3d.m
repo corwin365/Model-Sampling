@@ -23,11 +23,11 @@ Settings.InDir = [LocalDataDir,'/AIRS/3d_airs'];
 %for HeightRange, we will trim the granules in height to just this range
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.TimeRange   = datenum(2020,1,20):1:datenum(2020,1,20);
+Settings.TimeRange   = datenum(2020,1,20):1:datenum(2020,1,22);
 Settings.HeightRange = [20,60]; %km
 
 %path handling internal to routine
-[~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
+[~,CoreSettings] = sampling_core_v3(' ',' ',0,'GetSettings',true);
 Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
 clear CoreSettings
 
@@ -58,8 +58,8 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
   List = List(:,2);
 
   %loop over them
-  for jGranule=1%:1:240%numel(List);
-    try
+  for jGranule=1%%:240%numel(List);
+    % try
   % for jGranule=1:1:numel(List);
     iGranule = List(jGranule);
     
@@ -208,13 +208,14 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     
     %compute vertical resolution, based on mean geographic location of granule
     [latmean,~] = meanm(Data.l1_lat(:),Data.l1_lon(:));
-    RNight = airs_resolution(1,dayno,latmean,squeeze(Data.ret_z(1,1,:)))./(2.*2.355);
-    RDay   = airs_resolution(0,dayno,latmean,squeeze(Data.ret_z(1,1,:)))./(2.*2.355);
-    
+    RNight = airs_resolution(1,dayno,latmean,squeeze(Data.ret_z(1,1,:)),0)./(2.*2.355);
+    RDay   = airs_resolution(0,dayno,latmean,squeeze(Data.ret_z(1,1,:)),0)./(2.*2.355);
+
     IsDay =  which_airs_retrieval(Data.l1_lon(:),Data.l1_lat(:),Data.l1_time(:),1);
     Weight.Z = Weight.X.*NaN;
     Weight.Z(IsDay == 1) = abs(interp1(squeeze(Data.ret_z(1,1,:)),  RDay,Data.ret_z(IsDay == 1))); 
     Weight.Z(IsDay == 0) = abs(interp1(squeeze(Data.ret_z(1,1,:)),RNight,Data.ret_z(IsDay == 0)));
+
     clear latmean RNight RDay IsDay
 
     %the vertical angle varies by distance off-axis geometrically
@@ -257,7 +258,7 @@ for iDay=min(Settings.TimeRange):1:max(Settings.TimeRange);
     %tidy up, then done
     clear Track DayFile
     disp([datestr(iDay),', granule ',sprintf('%03d',iGranule),' complete'])
-    catch; end
+    % catch; end
 
   end; clear iGranule
 end; clear iDay
