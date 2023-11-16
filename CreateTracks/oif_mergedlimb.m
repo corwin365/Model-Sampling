@@ -16,23 +16,23 @@ addpath(genpath('../'));
 
 %path handling
 Settings.Instrument = 'limb_regions_fakedates';
-[~,CoreSettings] = sampling_core_v2(' ',' ',0,'GetSettings',true);
+[~,CoreSettings] = sampling_core_v3(' ',' ',0,'GetSettings',true);
 Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
 clear CoreSettings
 
 %instrument settings
-Settings.Instruments = {'GNSS','MLS'};%HIRDLS','};%,'HIRDLS','SABER'}; %list of instruments to include
+Settings.Instruments = {'GNSS'};%HIRDLS','};%,'HIRDLS','SABER'}; %list of instruments to include
 
 %geolocation - which data should we include?
 Settings.HeightScale = 18:0.1:45; %height grid to sample on.
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.HeightScale = 18:1:50; %km
+Settings.HeightScale = 15:0.5:50; %km
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2007,1,1:1);
-Settings.Dates.Sampling    = datenum(2020,1,1:1);
+Settings.Dates.Geolocation = datenum(2007,1,23);
+Settings.Dates.Sampling    = datenum(2020,1,23);
 
 %size of geographical subset regions. To produce daily global files, set to values > [360,180,24]
 Settings.Subsets = [30,30,3]; %deglon, deglat, hours
@@ -74,11 +74,11 @@ Params.GNSS.WeightDetails = [270,1.5,1.5];
 %HIRDLS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Params.HIRDLS.ViewAngle          = 227; 
-% Params.HIRDLS.WeightType         = '2d_field';
-% Params.HIRDLS.WeightDetails.File = 'hirdls_matrix_1d2davk.nc';
-% Params.HIRDLS.WeightDetails.Y    = 20/4;
-Params.HIRDLS.WeightType    = '1dgauss';
-Params.HIRDLS.WeightDetails = [200,20,1];
+Params.HIRDLS.WeightType         = '2d_field';
+Params.HIRDLS.WeightDetails.File = 'hirdls_matrix_1d2davk.nc';
+Params.HIRDLS.WeightDetails.Y    = 20/4;
+% Params.HIRDLS.WeightType    = '1dgauss';
+% Params.HIRDLS.WeightDetails = [200,20,1];
 
 %MLS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -315,7 +315,6 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
         %increment file counter
         SubSetCount = SubSetCount+1;        
         
-        if SubSetCount > 5; continue; end
         %find data in the box
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

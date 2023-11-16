@@ -86,6 +86,10 @@ Lon = Lon(idx);
 Model.Lon = Lon;
 Model.T   = Model.T(:,idx,:,:);
 
+%duplicate the end points, in case profiles go over the dateline
+Model.T = cat(2,Model.T(:,end,:,:),Model.T,Model.T(:,1,:,:));
+Model.Lon = [Model.Lon(1)-mean(diff(Model.Lon));Model.Lon;Model.Lon(end)+mean(diff(Model.Lon))];
+
 
 %latitude is also descending - we want ascending. Oh, ECMWF...
 Model.Lat = flip(Model.Lat,1);

@@ -70,7 +70,6 @@ if Settings.SaveSingles == true
   f = fieldnames(Output);
   for iF=1:1:numel(f)
     if strcmpi(class(Output.(f{iF})),'double') %don't convert non-numeric fields
-      disp('done')
       if ~strcmp(f{iF},'Time') %Matlab times must be stored as doubles
         Output.(f{iF}) = single(Output.(f{iF}));
       end

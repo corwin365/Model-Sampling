@@ -15,12 +15,12 @@ clear all
 
 
 %% set the instrument and model
-Settings.Instrument = 'AIRS3D';
-Settings.Model      = 'era5';
+Settings.Instrument = 'limb_regions_fakedates';
+Settings.Model      = 'dyamond_geos3km';
 
 %choose the data to use as a testbed
-Settings.Date = datenum(2020,1,24);
-Settings.SubSet = 100; %e.g. AIRS granules. Set to NaN if this is not relevant.
+Settings.Date = datenum(2020,1,23);
+Settings.SubSet = 5; %e.g. AIRS granules. Set to NaN if this is not relevant.
 
 %% set the output path
 Settings.OutRoot = '/sens/';
@@ -39,6 +39,9 @@ Settings.MinSignal = 0.99; %fraction of signal to require computation over
 %lowest altitude of model data used
 Settings.MaxPrs = 1000;
 
+
+%time permitted
+Settings.Time = "4:00:00";
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% make list of options, job names, and output file paths
@@ -73,14 +76,15 @@ for iJob = 1:1:numel(Jobs.OutPaths)
   %create script header
   Script = "#!/bin/bash";
   
-  Script(end+1) = "#SBATCH --account=xxxxxx";                %account name for budget. CHANGE THIS.
-  Script(end+1) = "#SBATCH --job-name="+Jobs.Names{iJob};    %name of job. Generated automatically.
-  Script(end+1) = "#SBATCH --output=myjob.out";              %standard (text) output file. May need changing
-  Script(end+1) = "#SBATCH --error=myjob.err";               %standard (text) error file. May need changing
-  Script(end+1) = "#SBATCH --nodes=1";                       %number of nodes. May need changing.
-  Script(end+1) = "#SBATCH --ntasks-per-node=16";            %tasks per node. May need changing.         
-  Script(end+1) = "#SBATCH --partition=shared";              %partition (queue) to use. CHANGE THIS  
-  Script(end+1) = "#SBATCH --time=06:00:00";                 %max allowed time. May need changing.
+  Script(end+1) = "#SBATCH --account=bm1233";                %account name for budget.
+  Script(end+1) = "#SBATCH --job-name="+[Settings.Instrument(1),Settings.Model(9:11),num2str(iJob)]; %name of job. Generated automatically.
+  Script(end+1) = "#SBATCH --output=output.%j";              %standard (text) output file.
+  Script(end+1) = "#SBATCH --error=error.%j";                %standard (text) error file.
+  Script(end+1) = "#SBATCH --ntasks=16";                     %tasks allowed.     
+  Script(end+1) = "#SBATCH --partition=compute";             %partition (queue) to use  
+  Script(end+1) = "#SBATCH --time="+Settings.Time;           %max allowed time
+  % Script(end+1) = "#SBATCH --mem=480GB";                     %memory
+
 
   %couple of lines of padding
   Script(end+1) = ""; Script(end+1) = ""; 
@@ -93,21 +97,22 @@ for iJob = 1:1:numel(Jobs.OutPaths)
 
   %load matlab module
   Script(end+1) = "module load matlab";
+  Script(end+1) = "module load cdo";
 
   %generate sensitivity testing struct in the file
   Sensitivity = 'Sensitivity = struct(); ';
   Sensitivity = [Sensitivity,  'Sensitivity.FineGrid.X = ',num2str(Jobs.FineGrid.X(  iJob)),';'];
   Sensitivity = [Sensitivity,  'Sensitivity.FineGrid.Y = ',num2str(Jobs.FineGrid.Y(  iJob)),';'];
   Sensitivity = [Sensitivity,'Sensitivity.FineGrid.Prs = ',num2str(Jobs.FineGrid.Prs(iJob)),';'];  
-  Sensitivity = [Sensitivity,   'Sensitivity.BlobScale = ',num2str(Jobs.BlobScale(   iJob)),';'];  
-  Sensitivity = [Sensitivity,   'Sensitivity.MinSignal = ',num2str(Jobs.MinSignal(   iJob)),';'];  
-  Sensitivity = [Sensitivity,      'Sensitivity.MaxPrs = ',num2str(Jobs.MaxPrs(      iJob)),';'];  
+  % Sensitivity = [Sensitivity,   'Sensitivity.BlobScale = ',num2str(Jobs.BlobScale(   iJob)),';'];  
+  % Sensitivity = [Sensitivity,   'Sensitivity.MinSignal = ',num2str(Jobs.MinSignal(   iJob)),';'];  
+  % Sensitivity = [Sensitivity,      'Sensitivity.MaxPrs = ',num2str(Jobs.MaxPrs(      iJob)),';'];  
 
   %path to write output
   Sensitivity = [Sensitivity,'Sensitivity.NewPath = ''',Jobs.OutPaths{iJob}, ''';'];  
 
   %generate matlab base command
-  Command = ['matlab -r "',Sensitivity,'[Error,OldData] = sampling_core_v2(''',Settings.Instrument,''',''',Settings.Model,''',',num2str(Settings.Date)];
+  Command = ['matlab -r "',Sensitivity,'[Error,OldData] = sampling_core_v3(''',Settings.Instrument,''',''',Settings.Model,''',',num2str(Settings.Date)];
   if ~isnan(Settings.SubSet); Command =[Command,',''Subset'',',num2str(Settings.SubSet)]; end
   Command = [Command,', ''Sensitivity'',Sensitivity'];
 
@@ -116,7 +121,7 @@ for iJob = 1:1:numel(Jobs.OutPaths)
   Script(end+1)  = Command;
 
   %write the script out as a text file
-  writelines(Script,['job_',sprintf('%06d',iJob),'.txt']);
+  writelines(Script,['job_',sprintf('%06d',iJob),'.txt'],LineEnding="\n");
 
   clear Sensitivity Command Script
  
@@ -130,5 +135,5 @@ Shell = "sbatch "+['job_',sprintf('%06d',1),'.txt'];
 for iJob=2:1:numel(Jobs.Names); 
   Shell(end+1) = "sbatch "+['job_',sprintf('%06d',iJob),'.txt'];
 end
-writelines(Shell,'fire_jobs.sh');
+writelines(Shell,'fire_jobs.sh',LineEnding="\n");
 clear Shell iJob

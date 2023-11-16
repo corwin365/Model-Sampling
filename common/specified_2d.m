@@ -35,9 +35,18 @@
   idx = find(sum(Kernel,1) ~= 0); x = x(idx); Kernel = Kernel(:,idx);
   idx = find(sum(Kernel,2) ~= 0); z = z(idx); Kernel = Kernel(idx,:);  
 
-  %temporarily adjust kernel to be centred at TP - Joern's next version will fix this
-  [~,idx] = max(nansum(abs(Kernel),1)); xcentre = x(idx);
-  x = x - xcentre; 
+  %find tangent point and set x to be centred here
+  if isfield(XZData,'tp_altitude')
+    %use values provided by Joern (new version)
+    [~,idx] = min(abs(XZData.tp_altitude - p2h(10.^Sample.Prs)));
+    x = x - XZData.tp_distance(idx);
+    clear idx
+  else
+    %estimate TP from total density - old version
+    [~,idx] = max(nansum(abs(Kernel),1)); xcentre = x(idx);
+    x = x - xcentre;
+    clear idx xcentre
+  end
 
   %fine grid
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
