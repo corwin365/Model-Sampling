@@ -443,7 +443,6 @@ if Settings.SensTestMode ~= 0
   end
  
   Settings.OutPath = [Settings.MasterPath,Sensitivity.NewPath]; 
-  if exist(Settings.OutPath,'dir') ~= 7; mkdir(Settings.OutPath);end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
