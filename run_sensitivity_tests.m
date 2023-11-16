@@ -15,29 +15,39 @@ clear all
 
 
 %% set the instrument and model
-Settings.Instrument = 'limb_regions_fakedates';
+Settings.Instrument = 'AIRS3D';
 Settings.Model      = 'dyamond_geos3km';
 
 %choose the data to use as a testbed
 Settings.Date = datenum(2020,1,23);
-Settings.SubSet = 5; %e.g. AIRS granules. Set to NaN if this is not relevant.
+Settings.SubSet = 201%3; %e.g. AIRS granules. Set to NaN if this is not relevant.
 
 %% set the output path
 Settings.OutRoot = '/sens/';
 
 %% set the range of values to vary over
 
+
+
+
 %grid values
-Settings.FineGrid.X   = [10,20];    %averaging blob x-dimension, km
-Settings.FineGrid.Y   = 10;    %averaging blob y-dimension, km
-Settings.FineGrid.Prs = 1/32;  %averaging blob z-dimension, decades of pressure
 
-%blob values
-Settings.BlobScale = 3; %number of standard deviations to compute sensitivity out to (+- from centre)
-Settings.MinSignal = 0.99; %fraction of signal to require computation over
+%merged limb sounders
+% Settings.FineGrid.X   = 1:1:10;    %averaging blob x-dimension, km
+% Settings.FineGrid.Y   = 1:1:10;    %averaging blob y-dimension, km
+% Settings.FineGrid.Prs = 1./[80:-10:20];  %averaging blob z-dimension, decades of pressure
 
-%lowest altitude of model data used
-Settings.MaxPrs = 1000;
+%AIRS3D
+Settings.FineGrid.X   = fliplr(logspace(log10(0.25),log10(10),7));    %averaging blob x-dimension, km
+Settings.FineGrid.Y   = fliplr(logspace(log10(0.25),log10(10),7));    %averaging blob y-dimension, km
+Settings.FineGrid.Prs = 1./fliplr(linspace(10,40,7));  %averaging blob z-dimension, decades of pressure
+
+% % %blob values
+% % Settings.BlobScale = 3; %number of standard deviations to compute sensitivity out to (+- from centre)
+% % Settings.MinSignal = 0.99; %fraction of signal to require computation over
+% % 
+% % %lowest altitude of model data used
+% % Settings.MaxPrs = 1000;
 
 
 %time permitted
@@ -76,7 +86,7 @@ for iJob = 1:1:numel(Jobs.OutPaths)
   %create script header
   Script = "#!/bin/bash";
   
-  Script(end+1) = "#SBATCH --account=bm1233";                %account name for budget.
+  Script(end+1) = "#SBATCH --account=xxxxxx";                %account name for budget.
   Script(end+1) = "#SBATCH --job-name="+[Settings.Instrument(1),Settings.Model(9:11),num2str(iJob)]; %name of job. Generated automatically.
   Script(end+1) = "#SBATCH --output=output.%j";              %standard (text) output file.
   Script(end+1) = "#SBATCH --error=error.%j";                %standard (text) error file.

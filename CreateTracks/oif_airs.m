@@ -25,8 +25,8 @@ Settings.HeightRange = [20,60]; %km
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2020,1,20);
-Settings.Dates.Sampling    = datenum(2020,1,20);
+Settings.Dates.Geolocation = datenum(2020,1,23);
+Settings.Dates.Sampling    = datenum(2020,1,23);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% check inputs
@@ -69,7 +69,7 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   k= 0; %just a count for display to the user at the end
-  for iGranule=1%:1:240;
+  for iGranule=201%:1:240;
 
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

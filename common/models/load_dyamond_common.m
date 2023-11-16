@@ -186,7 +186,7 @@ rng(round(sum(Range)+datenum(now)))
 %combination of the time to the tenth of a millisecond and a random number between
 %one and a million should hopefully be unique?
 Identifier = [strrep(num2str(datenum(now)),'.',''),'_',num2str(randi(1e6,[1]))];
-% Identifier = '';
+%  Identifier = '';
 
 
 for iFile=1:1:numel(Files)
@@ -202,6 +202,13 @@ for iFile=1:1:numel(Files)
    
     %produce filename
     TempFiles{iFile,iSource+1} = [ScratchPath,Source,'_',sprintf('%06d',iFile),'_',Identifier,'.nc'];
+    
+    %if we've disabled identifiers, and the file exists, then just load the old file
+    %we still need to generate a time value for it
+    if numel(Identifier) == 0 && exist(TempFiles{iFile,iSource+1},'file');
+      FileTimes(iFile,:) = TimeStore(iFile);
+      continue
+    end 
 
     %now, generate a CDO command to subset the data down in space
     Command = 'cdo -P 16'; %16 cores permitted. Add '-v' to produce verbose output
@@ -283,6 +290,7 @@ clear Range ff InRange Command status PrsFile
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+
 for iFile=1:1:size(TempFiles,1)
 
   %load the file
@@ -309,14 +317,14 @@ end; clear iFile
 %% delete working files
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+if numel(Identifier) ~= 0
+  disp(' ');disp(' ');
+  for iFile=1:1:size(TempFiles,1)
+   delete(TempFiles{iFile,1})
+   disp(['Tidying up: ',TempFiles{iFile},' deleted'])
+  end; clear iFile
 
-disp(' ');disp(' ');
-for iFile=1:1:size(TempFiles,1)
- delete(TempFiles{iFile,1})
- disp(['Tidying up: ',TempFiles{iFile},' deleted'])
-end; clear iFile
-
-
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% interpolate the data onto a common pressure scale
@@ -358,7 +366,6 @@ if FixedPFlag ~= 1
   clear Dim PrsScale DimOrder T P Ti Pi
 
 end
-  
   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% finally, permute the results to the desired output order

@@ -21,7 +21,7 @@ Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
 clear CoreSettings
 
 %instrument settings
-Settings.Instruments = {'GNSS'};%HIRDLS','};%,'HIRDLS','SABER'}; %list of instruments to include
+Settings.Instruments = {'GNSS','MLS','HIRDLS','SABER'}; %list of instruments to include
 
 %geolocation - which data should we include?
 Settings.HeightScale = 18:0.1:45; %height grid to sample on.
@@ -74,11 +74,11 @@ Params.GNSS.WeightDetails = [270,1.5,1.5];
 %HIRDLS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Params.HIRDLS.ViewAngle          = 227; 
-Params.HIRDLS.WeightType         = '2d_field';
-Params.HIRDLS.WeightDetails.File = 'hirdls_matrix_1d2davk.nc';
-Params.HIRDLS.WeightDetails.Y    = 20/4;
-% Params.HIRDLS.WeightType    = '1dgauss';
-% Params.HIRDLS.WeightDetails = [200,20,1];
+% Params.HIRDLS.WeightType         = '2d_field';
+% Params.HIRDLS.WeightDetails.File = 'hirdls_matrix_1d2davk.nc';
+% Params.HIRDLS.WeightDetails.Y    = 20/4;
+Params.HIRDLS.WeightType    = '1dgauss';
+Params.HIRDLS.WeightDetails = [200,20,1];
 
 %MLS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -90,10 +90,10 @@ Params.MLS.WeightDetails.Z = [99e99,12;107.73,12;102.51,13;97.02,12;80.73,11;64.
 
 
 % % % %SABER
-% % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % % Params.SABER.ViewAngle = -90; 
-% % % %to do based on Joern's results
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Params.SABER.ViewAngle    = -90; 
+Params.SABER.WeightType    = '1dgauss';
+Params.SABER.WeightDetails = [300,50,2];
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
