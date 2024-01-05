@@ -15,12 +15,12 @@ clear all
 
 
 %% set the instrument and model
-Settings.Instrument = 'AIRS3D';
+Settings.Instrument = 'limb_regions';
 Settings.Model      = 'dyamond_geos3km';
 
 %choose the data to use as a testbed
-Settings.Date = datenum(2020,1,23);
-Settings.SubSet = 201%3; %e.g. AIRS granules. Set to NaN if this is not relevant.
+Settings.Date = 737843;%datenum(2020,1,23);
+Settings.SubSet = 335%3; %e.g. AIRS granules. Set to NaN if this is not relevant.
 
 %% set the output path
 Settings.OutRoot = '/sens/';
@@ -33,25 +33,25 @@ Settings.OutRoot = '/sens/';
 %grid values
 
 %merged limb sounders
-% Settings.FineGrid.X   = 1:1:10;    %averaging blob x-dimension, km
-% Settings.FineGrid.Y   = 1:1:10;    %averaging blob y-dimension, km
-% Settings.FineGrid.Prs = 1./[80:-10:20];  %averaging blob z-dimension, decades of pressure
+Settings.FineGrid.X   = fliplr([0.5,1:1:10]);    %averaging blob x-dimension, km
+Settings.FineGrid.Y   = fliplr([0.5,1:1:10]);    %averaging blob y-dimension, km
+Settings.FineGrid.Prs = fliplr(1./[100:-10:40]);     %averaging blob z-dimension, decades of pressure
 
-%AIRS3D
-Settings.FineGrid.X   = fliplr(logspace(log10(0.25),log10(10),7));    %averaging blob x-dimension, km
-Settings.FineGrid.Y   = fliplr(logspace(log10(0.25),log10(10),7));    %averaging blob y-dimension, km
-Settings.FineGrid.Prs = 1./fliplr(linspace(10,40,7));  %averaging blob z-dimension, decades of pressure
+% % %AIRS3D
+% % Settings.FineGrid.X   = fliplr(logspace(log10(0.25),log10(10),7));    %averaging blob x-dimension, km
+% % Settings.FineGrid.Y   = fliplr(logspace(log10(0.25),log10(10),7));    %averaging blob y-dimension, km
+% % Settings.FineGrid.Prs = 1./fliplr(linspace(10,40,7));  %averaging blob z-dimension, decades of pressure
 
 % % %blob values
-% % Settings.BlobScale = 3; %number of standard deviations to compute sensitivity out to (+- from centre)
-% % Settings.MinSignal = 0.99; %fraction of signal to require computation over
-% % 
-% % %lowest altitude of model data used
-% % Settings.MaxPrs = 1000;
+Settings.BlobScale = 3; %number of standard deviations to compute sensitivity out to (+- from centre)
+Settings.MinSignal = 0.99; %fraction of signal to require computation over
+
+%lowest altitude of model data used
+Settings.MaxPrs = 1000;
 
 
 %time permitted
-Settings.Time = "4:00:00";
+Settings.Time = "6:00:00";
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% make list of options, job names, and output file paths
@@ -87,13 +87,13 @@ for iJob = 1:1:numel(Jobs.OutPaths)
   Script = "#!/bin/bash";
   
   Script(end+1) = "#SBATCH --account=xxxxxx";                %account name for budget.
-  Script(end+1) = "#SBATCH --job-name="+[Settings.Instrument(1),Settings.Model(9:11),num2str(iJob)]; %name of job. Generated automatically.
+  Script(end+1) = "#SBATCH --job-name="+['sens',num2str(mod(iJob,15))]; %name of job. Generated automatically.
   Script(end+1) = "#SBATCH --output=output.%j";              %standard (text) output file.
   Script(end+1) = "#SBATCH --error=error.%j";                %standard (text) error file.
   Script(end+1) = "#SBATCH --ntasks=16";                     %tasks allowed.     
   Script(end+1) = "#SBATCH --partition=compute";             %partition (queue) to use  
   Script(end+1) = "#SBATCH --time="+Settings.Time;           %max allowed time
-  % Script(end+1) = "#SBATCH --mem=480GB";                     %memory
+  Script(end+1) = "#SBATCH --mem=480GB";                     %memory
 
 
   %couple of lines of padding
@@ -143,7 +143,8 @@ end; clear iJob
 
 Shell = "sbatch "+['job_',sprintf('%06d',1),'.txt'];
 for iJob=2:1:numel(Jobs.Names); 
-  Shell(end+1) = "sbatch "+['job_',sprintf('%06d',iJob),'.txt'];
+  Shell(end+1) = "sbatch --dependency=singleton "+['job_',sprintf('%06d',iJob),'.txt'];
+  Shell(end+1) = "rm     "+['job_',sprintf('%06d',iJob),'.txt'];
 end
 writelines(Shell,'fire_jobs.sh',LineEnding="\n");
 clear Shell iJob

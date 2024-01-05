@@ -219,10 +219,13 @@ for iTest=1:1:numel(Test.GNSS.X)
     % of the original profiles
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    x = 1:1:size(Data.Lat,1);
-    z = 1:1:size(Data.Lat,2);
+    if exist('Store','var'); xbase = max(Store.Data.x,[],'all'); else; xbase = 0; end
+
+    x = (1:1:size(Data.Lat,1))+xbase;
+    z = (1:1:size(Data.Lat,2));
     [Data.z,Data.x] = meshgrid(z,x);
 
+    clear xbase
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %glue this dataset to the others
@@ -248,6 +251,7 @@ for iTest=1:1:numel(Test.GNSS.X)
     
 end; clear iTest
 clear Data 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%GOES BACK TO NORMAL FROM HERE
 
     disp(['--> Imported observational grid for ',Settings.Instruments{iInst}])
@@ -258,8 +262,6 @@ clear Data
     disp('-->No data found for this day from any instrument, skipping to next day')
     continue
   end
-
-
 
 
 
@@ -306,6 +308,7 @@ clear Data
         %we'll also save 'Params', as it's used in some weight calculations
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
         Recon = struct();
         Fields = {'x','z'};
         for iF=1:1:numel(Fields)
@@ -324,7 +327,7 @@ clear Data
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         OutFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(Settings.Dates.Sampling(iDay)),'_r',sprintf('%03d',SubSetCount),'.mat'];
-         save(OutFile,'Track','Recon','Weight','Params');%,'Meta');
+        save(OutFile,'Track','Recon','Weight','Params');%,'Meta');
 
 
       end; clear TimeBand

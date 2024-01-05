@@ -15,27 +15,26 @@ addpath(genpath('../'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %path handling
-Settings.Instrument = 'limb_regions_fakedates';
+Settings.Instrument = 'limb_regions';
 [~,CoreSettings] = sampling_core_v3(' ',' ',0,'GetSettings',true);
 Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
 clear CoreSettings
 
 %instrument settings
-Settings.Instruments = {'GNSS','MLS','HIRDLS','SABER'}; %list of instruments to include
+Settings.Instruments = {'GNSS','MLS','SABER'}; %list of instruments to include
 
 %geolocation - which data should we include?
-Settings.HeightScale = 18:0.1:45; %height grid to sample on.
+Settings.HeightScale = 5:0.5:60; %height grid to sample on.
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
-Settings.HeightScale = 15:0.5:50; %km
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2007,1,23);
-Settings.Dates.Sampling    = datenum(2020,1,23);
+Settings.Dates.Geolocation = datenum(2020,1,28);
+Settings.Dates.Sampling    = datenum(2020,1,28);
 
 %size of geographical subset regions. To produce daily global files, set to values > [360,180,24]
-Settings.Subsets = [30,30,3]; %deglon, deglat, hours
+Settings.Subsets = [60,30,3]; %deglon, deglat, hours
 
 %when using 2d weighting functions, discard points where the value is less than this propertion of the max(abs())
 Settings.MinVal = 0.01;
@@ -69,7 +68,7 @@ Settings.MinVal = 0.01;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Params.GNSS.ViewAngle     = 'Azim'; 
 Params.GNSS.WeightType    = '1dgauss';
-Params.GNSS.WeightDetails = [270,1.5,1.5];
+Params.GNSS.WeightDetails = [250,1.2,1.2];
 
 %HIRDLS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -78,7 +77,7 @@ Params.HIRDLS.ViewAngle          = 227;
 % Params.HIRDLS.WeightDetails.File = 'hirdls_matrix_1d2davk.nc';
 % Params.HIRDLS.WeightDetails.Y    = 20/4;
 Params.HIRDLS.WeightType    = '1dgauss';
-Params.HIRDLS.WeightDetails = [200,20,1];
+Params.HIRDLS.WeightDetails = [150,20,1];
 
 %MLS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -89,9 +88,12 @@ Params.MLS.WeightDetails.Y = [0,6;55,6;65,12;9e99,12]; %6km xLOS below stratopau
 Params.MLS.WeightDetails.Z = [99e99,12;107.73,12;102.51,13;97.02,12;80.73,11;64.45,6.4;56.31,8.1;47.82,6.8;38.42,5.5;31.08,4.1;28.57,3.9;23.58,3.6;19.83,3.7;16.18,4.6;11.33,3.5;9.95,3.8;0,3.8]; %as specified by table 3.22.1 in MLS v5-0_data_quality_document
 
 
-% % % %SABER
+%SABER
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Params.SABER.ViewAngle    = -90; 
+Params.SABER.ViewAngle          = -90; 
+% Params.SABER.WeightType         = '2d_field';
+% Params.SABER.WeightDetails.File = 'saber_matrix_1d2davk.nc';
+% Params.SABER.WeightDetails.Y    = 50/4;
 Params.SABER.WeightType    = '1dgauss';
 Params.SABER.WeightDetails = [300,50,2];
 
@@ -269,7 +271,7 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
       %data
       Data.SourceFile = Data.SourceFile + nanmax(Store.Data.SourceFile,[],'all'); %shift the SourceFile indices to account for the previous instruments
       Store.Data = cat_struct(Store.Data,Data,1,{'OriginalFiles'});
-      Store.Data.OriginalFiles = cat(1,Store.Data.OriginalFiles,Data.OriginalFiles);
+      Store.Data.OriginalFiles = cat(1,Store.Data.OriginalFiles,flatten(Data.OriginalFiles));
 
       %weight
       Store.Weight        = cat_struct(Store.Weight,Weight,1,{'Format'});
@@ -292,18 +294,18 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
 
 
 
-
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %% output to track files
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
   %create a directory to put the data in, if it doesn't exist
   if exist(Settings.OutDir,'dir') ~= 7; mkdir(Settings.OutDir); end  
 
   %we don't want profiles to be split across regions. create a geolocation array that is just a single lat and lon for each profile
-  RegionLat  = repmat(nanmedian(Store.Data.Lat,2),1,size( Store.Data.Lat, 2));
-  RegionLon  = repmat(nanmedian(Store.Data.Lon,2),1,size( Store.Data.Lon, 2));
-  RegionTime = repmat(nanmedian(Store.Data.Time,2),1,size(Store.Data.Time,2)) + Settings.Dates.Geolocation(iDay) - Settings.Dates.Sampling(iDay);
+  RegionLat  = nanmedian(Store.Data.Lat, 2);
+  RegionLon  = nanmedian(Store.Data.Lon, 2);
+  RegionTime = nanmedian(Store.Data.Time,2) + Settings.Dates.Geolocation(iDay) - Settings.Dates.Sampling(iDay);
 
   %divide data up into geographic regions
   disp('--> Generating output and dividing into regions')
@@ -314,7 +316,8 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
 
         %increment file counter
         SubSetCount = SubSetCount+1;        
-        
+
+
         %find data in the box
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -327,24 +330,32 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
         %pull out the necessary data
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        Track  = reduce_struct(Store.Data,  idx,{'OriginalFiles'},0);
-        Weight = reduce_struct(Store.Weight,idx,{},0);
-
+        Track  = reduce_struct(Store.Data,  idx,{'OriginalFiles'},1);
+        Weight = reduce_struct(Store.Weight,idx,{},1);
+        if SubSetCount == 35; stop; end
         %split into:
         % Recon: ONLY profile reconstruction data, to put the profiles back together
         % Track: track data, for computing how to sample, and also metadata for postprocessing
         %we'll also save 'Params', as it's used in some weight calculations
+        %
+        %all arrays also need flattening down to 1D
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         Recon = struct();
-        Fields = {'x','z'};
-        for iF=1:1:numel(Fields)
-          Recon.(Fields{iF}) = Track.(Fields{iF});
-          Track = rmfield(Track,Fields{iF});
+        [Recon.x,Recon.z] = meshgrid(1:1:size(Track.Lat,1),1:1:size(Track.Lat,2));
+        Recon.x = Recon.x(:); Recon.z = Recon.z(:);
+        F = fieldnames(Track);
+        for iF=1:1:numel(F)
+          if     strcmp(F{iF},'OriginalFiles');         continue;
+          elseif strcmp(F{iF},'x') | strcmp(F{iF},'z'); Track =rmfield(Track,F{iF});
+          else                                          Track.(F{iF}) = flatten(Track.(F{iF})');
+          end
         end
-        %recon needs to be rebased for each output file. This is as fine as we 
-        %retain the original profile numbers in 'Meta' anyway
-        [~,~,Recon.x] =unique(Recon.x); [~,~,Recon.z] =unique(Recon.z);
+        F = fieldnames(Weight);
+        for iF=1:1:numel(F)
+          Weight.(F{iF}) = flatten(Weight.(F{iF})');
+        end        
+      
 
         Track.PatternDay = Settings.Dates.Geolocation(iDay); %what day did the geolocation data come from?
         Track.InstNames = Settings.Instruments';
@@ -366,7 +377,7 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
 
   %tidy up for next loop
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  disp(['--> ',datestr(Settings.Dates.Geolocation(iDay)),' complete; ',num2str(SubSetCount),' track files written'])
+  disp(['--> ',datestr(Settings.Dates.Geolocation(iDay)),' complete; up to ',num2str(SubSetCount),' track files written'])
   clear Store SubSetCount
 
 

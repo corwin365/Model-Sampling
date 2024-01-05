@@ -38,7 +38,11 @@ NDims = numel(DimList); OutputSize = NaN(NDims,1);
 for iDim=1:1:NDims; OutputSize(iDim) = max(ObsGrid.Recon.(DimList{iDim}));end; clear iDim
 
 %order list of dimensions from largest number of elements to smallest (arbitrary, but I want something stable)
-[OutputSize,idx] = sort(OutputSize,'desc');DimList = DimList(idx); clear idx
+%if two have the same size, then order them reverse-alphabetically. This caused me major problems when it occured once unexpectedly...
+[~,idx] = sortrows(table(OutputSize,fieldnames(ObsGrid.Recon)),[1,2],{'descend' 'descend'});
+OutputSize = OutputSize(idx);
+DimList = DimList(idx);
+clear A;
 
 %work out where each data point goes
 List = ObsGrid.Recon.(DimList{1});

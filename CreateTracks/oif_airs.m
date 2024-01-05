@@ -25,8 +25,8 @@ Settings.HeightRange = [20,60]; %km
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2020,1,23);
-Settings.Dates.Sampling    = datenum(2020,1,23);
+Settings.Dates.Geolocation = datenum(2020,1,1);%20:1:60);
+Settings.Dates.Sampling    = datenum(2020,1,1);%20:1:60);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% check inputs
@@ -69,8 +69,10 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   k= 0; %just a count for display to the user at the end
-  for iGranule=201%:1:240;
-
+  for iGranule=1:1:240;
+    
+    OutFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(Settings.Dates.Sampling(iDay)),'_g',sprintf('%03d',iGranule),'.mat'];
+    if exist(OutFile,'file'); continue;end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %load data, including horiz viewing angle
@@ -248,7 +250,6 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
 
 
 
-
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %% output to track files
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -306,12 +307,11 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-  OutFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(Settings.Dates.Sampling(iDay)),'_g',sprintf('%03d',iGranule),'.mat'];
-  save(OutFile,'Track','Recon','Weight');
+    save(OutFile,'Track','Recon','Weight');
   disp('--> Track file written')
   k = k+1;
 
-  clear Track Recon Weight sz OutFile 
+  clear Track Recon Weight sz OutFile Store 
 
 
   end; clear iGranule
@@ -320,7 +320,6 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
   %tidy up for next loop
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   disp(['----> ',datestr(Settings.Dates.Geolocation(iDay)),' complete; ',num2str(k),' track files written <----'])
-  clear Store SubSetCount
 
 
 end; clear iDay

@@ -1,4 +1,4 @@
-function Model = load_1kmIFS(ObsGrid,BlobScale)
+function Model = load_1kmIFS_emilyversion(ObsGrid,BlobScale)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -93,7 +93,7 @@ addParameter(p,    'OutPath',                          'NOTSET', @isfolder); %ou
  
 %arbitrary numbers used in the code. Most defaults have been selected via sensivity testing using 3D AIRS data.
 addParameter(p,     'MinSignal',  0.99,        IsPositive);     %fraction of total signal needed to produce final sample
-addParameter(p, 'SpecWeightMin',     0,        IsPositive);     %when using specified weighting function, discard any values contributing less than this times the maximum
+addParameter(p, 'SpecWeightMin',  1e-3,        IsPositive);     %when using specified weighting function, discard any values contributing less than this times the maximum
 addParameter(p,     'BlobScale',     3,        IsPositive);     %number of standard deviations to compute sensitivity out to (+- from centre)
 addParameter(p,   'MinZContrib',  0.02,        IsPositive);     %when rotating, discard vertical levels contributing less fractional weight than this
 addParameter(p,      'ZPadding',   0.5,        IsPositive);     %when rotating, vertical padding in decades of pressure
@@ -216,9 +216,9 @@ if find(contains(ObsGrid.Weight.Format,'specified_2d'))
   for iW=1:1:numel(Ws)
     W = Ws{iW};
     if length(W) > 12 && strcmp(W(1:12),'specified_2d');
-      ObsGrid.WeightMatrix.XZ.(W(14:end)) = rCDF(ObsGrid.Params.(W(14:end)).WeightDetails.File);
-      ObsGrid.WeightMatrix.XZ.(W(14:end)).avk = smoothn(ObsGrid.WeightMatrix.XZ.(W(14:end)).avk,[1,1,11]);
-      ObsGrid.WeightMatrix.Y.(W(14:end))  =      ObsGrid.Params.(W(14:end)).WeightDetails.Y;
+      ObsGrid.WeightMatrix.XZ.(W(14:end))     = rCDF(ObsGrid.Params.(W(14:end)).WeightDetails.File);
+      ObsGrid.WeightMatrix.XZ.(W(14:end)).avk = smoothn(ObsGrid.WeightMatrix.XZ.(W(14:end)).avk,[1,1,5]);
+      ObsGrid.WeightMatrix.Y.(W(14:end))      =      ObsGrid.Params.(W(14:end)).WeightDetails.Y;
     end
   end
   clear Ws iW W

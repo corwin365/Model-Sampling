@@ -1,4 +1,4 @@
-function Model = load_ecmwf_opal(DayNumber,MaxPrs,MinPrs)
+function Model = load_era5_levante(ObsGrid,MaxPrs,MinPrs)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -12,46 +12,42 @@ function Model = load_ecmwf_opal(DayNumber,MaxPrs,MinPrs)
 %2. file not found
 
 %path to model data
-ModelPath   = [LocalDataDir,'/ERA5/opal/'];
+ModelPath   = '/scratch/b/b382226/era5/';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%path for this day and the next day
-[y,~,~] = datevec(DayNumber);   dn = date2doy(DayNumber);
-FileName1 = [ModelPath,sprintf('%04d',y),'/opal_',sprintf('%04d',y),'d',sprintf('%03d',dn),'.nc'];
-[y,~,~] = datevec(DayNumber+1); dn = date2doy(DayNumber+1);
-FileName2 = [ModelPath,sprintf('%04d',y),'/opal_',sprintf('%04d',y),'d',sprintf('%03d',dn),'.nc'];
+MeanTime = nanmean(ObsGrid.Track.Time(:));
+DayNumber = floor(MeanTime);
+
+%path for this hour and the next hour
+[y,~,~,h,~,~] = datevec(MeanTime); dn = floor(date2doy(DayNumber));
+FileName1 = [ModelPath,'/era5_',sprintf('%04d',y),'d',sprintf('%03d',dn),'h',sprintf('%02d',h),'.nc'];
+[y,~,~,h,~,~] = datevec(MeanTime+1/24);   dn = floor(date2doy(MeanTime+1/24));
+FileName2 = [ModelPath,'/era5_',sprintf('%04d',y),'d',sprintf('%03d',dn),'h',sprintf('%02d',h),'.nc'];
 
 
 %work out pressure axis and select wanted region
 PrsScale = ecmwf_prs_v3(137,11.06059)'; %close enough for the stratosphere. 
 PrsScale(1) = 0.01; %because it is, but my routine gives a NaN
-PrsScale = PrsScale(1:80); %trimmed in the source files to save space
+PrsScale = PrsScale(1:80); %we trimmed the files, starting at the top
 idx = inrange(PrsScale,[MinPrs,MaxPrs]);
-
 
 %load the two days, cut them down to just the desired region, and merge them
 Day1   = rCDF(FileName1);
-% try     Day1   = rmfield(Day1,{'u','v','lnsp','level'});%,'MetaData'});
-% catch;  Day1   = rmfield(Day1,{'u','v',       'level'});%,'MetaData'});
-% end
 Day1.t = Day1.t(:,:,idx,:);
+Day1.time = DayNumber+Day1.time./24;
 
 Day2   = rCDF(FileName2);
-% try     Day2   = rmfield(Day2,{'u','v','lnsp','level'});%,'MetaData'});
-% catch;  Day2   = rmfield(Day2,{'u','v',       'level'});%,'MetaData'});
-% end
 Day2.t = Day2.t(:,:,idx,:);
+Day2.time = DayNumber+Day2.time./24+1;
 
 Store      = Day1; clear Day1
 Store.t    = cat(4,Store.t,Day2.t); 
 Store.time = cat(1,Store.time,Day2.time);
 clear Day2
 
-%convert time units
-Store.time = datenum(1900,1,1,Store.time,0,0);
 
 %tidy up
 clear idx MaxPrs MinPrs dn y FileName1 FileName2 ModelPath DayNumber
@@ -74,8 +70,8 @@ clear idx MaxPrs MinPrs dn y FileName1 FileName2 ModelPath DayNumber
 %we're in the stratosphere, and have much bigger errors than thuis elsewhere
 
 % stick stuff in a struct
-Model.Lon  = Store.longitude;
-Model.Lat  = Store.latitude;
+Model.Lon  = Store.lon;
+Model.Lat  = Store.lat;
 Model.Time = Store.time;
 Model.T    = permute(Store.t,[4,1,2,3]);
 Model.Prs  = PrsScale'; 

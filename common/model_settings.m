@@ -31,6 +31,10 @@ ModelInfo.cfsr.Arguments = 'DayNumber';
 ModelInfo.ec_fc.FuncName  = 'load_ecmwf_forecast';
 ModelInfo.ec_fc.Arguments = 'DayNumber,Settings.HoursAhead,Settings.MaxPrs';
 
+%ECMWF operational analysis
+ModelInfo.ecmwf_opal.FuncName  = 'load_ecmwf_opal';
+ModelInfo.ecmwf_opal.Arguments = 'DayNumber,Settings.HoursAhead,Settings.MaxPrs';
+
 %ECMWF runs produced by Inna for ISSI 2019
 ModelInfo.ecmwf_issi.FuncName  = 'load_ecmwf_issi';
 ModelInfo.ecmwf_issi.Arguments = 'ObsGrid';
@@ -38,6 +42,8 @@ ModelInfo.ecmwf_issi.Arguments = 'ObsGrid';
 %ERA5 reanalysis
 ModelInfo.era5.FuncName  = 'load_era5';
 ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs';
+ModelInfo.era5_levante.FuncName  = 'load_era5_levante';
+ModelInfo.era5_levante.Arguments = 'ObsGrid,Settings.MaxPrs,Settings.MinPrs';
 
 %ERA-Interim reanalysis
 ModelInfo.erai.FuncName  = 'load_erai';

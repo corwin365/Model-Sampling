@@ -16,22 +16,19 @@
 
   %pull out correct parameters
   XZData = ObsGrid.WeightMatrix.XZ.(Instrument);
-  YSigma  = ObsGrid.WeightMatrix.Y.( Instrument);
+  YSigma = ObsGrid.WeightMatrix.Y.( Instrument);
 
-  % % % %interpolate betwen levels to find the right kernel for this level
-  % % % %if you don't do this then the results show steps between heights
-  % % % zo = p2h(10.^Sample.Prs);
-  % % % zi = XZData.retrieval_altitude;
-  % % % Kernel = interp_1d_ndims(zi,XZData.avk,zo,3);
 
-  %choose the right kernel shape for this altitude of tangent point
-  [~,zidx] = min(abs(p2h(10.^Sample.Prs) - XZData.retrieval_altitude));
-  Kernel = XZData.avk(:,:,zidx);
+  %choose the right kernel shape for this altitude of tangent point, by interpolating from the surrounding levels
+  % [~,zidx] = min(abs(p2h(10.^Sample.Prs) - XZData.retrieval_altitude));
+  % Kernel = XZData.avk(:,:,zidx);
+  Kernel = interp_1d_ndims(XZData.retrieval_altitude,XZData.avk,p2h(10.^Sample.Prs),3);
+
   x = XZData.distance;
   z = XZData.altitude;
 
   %trim weakly-contributing regions
-  Kernel(abs(Kernel) < max(abs(Kernel),[],'all') .* Settings.SpecWeightMin) = 0;
+  Kernel(abs(Kernel) < (max(abs(Kernel),[],'all') .* Settings.SpecWeightMin)) = 0;
   idx = find(sum(Kernel,1) ~= 0); x = x(idx); Kernel = Kernel(:,idx);
   idx = find(sum(Kernel,2) ~= 0); z = z(idx); Kernel = Kernel(idx,:);  
 
@@ -54,7 +51,7 @@
   %produce a FineGrid able to represent this field
   %X and Y are easy:
   Fine.X = min(x):Settings.FineGrid(1):max(x);
-  Fine.Y = -1.25*Settings.BlobScale*YSigma  : Settings.FineGrid(2) : 1.25*Settings.BlobScale*YSigma ;
+  Fine.Y = -Settings.BlobScale*YSigma  : Settings.FineGrid(2) : Settings.BlobScale*YSigma ;
   Fine.Prs = log10(h2p(max(z))):Settings.FineGrid(3):log10(h2p(min(z)));
 
   %interpolate XZ kernel onto the finegrid
