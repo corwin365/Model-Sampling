@@ -35,6 +35,7 @@ function [Error,OldData] = sampling_core_v3(Instrument,ModelName,DayNumber,varar
 
 %the master file path is not optional as it is used upstream. Set it here.
 %this is where all the track-input and sampled-output files live
+% MasterPath = '/scratch/b/b382226/sampling/';
 MasterPath = [LocalDataDir,'/corwin/sampling_project'];
 
 %get functions
@@ -75,6 +76,8 @@ addParameter(p,  'IncludeNaNs',   true,        @islogical);     %if a measuremen
 addParameter(p,  'GetSettings',  false,        @islogical);     %just get the settings generated here and return it in the 'OldData' field
 addParameter(p, 'ScatteredInt',  false,        @islogical);     %use for model data not on a regular lon/lat/prs/t grid. This takes MUCH longer, so don't do it unnecessarily, but can save memory for irregularly-gridded models and may be slightly more accurate for such models.
 addParameter(p,  'SaveSingles',   true,        @islogical);     %convert outputs to single() rather than double() to save filespace. Will skip time variables.
+addParameter(p,    'SaveTOnly',  false,        @islogical);     %only save T and Tsimple, skipping all other variables
+
 
 %numeric values
 addParameter(p,  'ReportEvery',   1000,  IsPositiveInteger);     %if TextUpdate is set, update to screen how often (in samples)?
@@ -500,7 +503,13 @@ disp(['Sampling complete for ',ModelName,' as ',Instrument,' on ',datestr(DayNum
 RunTime.End = datenum(now);
 
 %write the output file
-save(Settings.OutPath,'Sampled_Data','Settings','RunTime');
+if Settings.SaveTOnly == false
+  save(Settings.OutPath,'Sampled_Data','Settings','RunTime','-v7.3');
+else
+  Out.T = Sampled_Data.T; Out.TSimple = Sampled_Data.TSimple; 
+  save(Settings.OutPath,'-struct','Out','-v7.3')
+  clear Out
+end
 disp('Saved!');
 
 %and we're done

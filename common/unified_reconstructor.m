@@ -38,7 +38,7 @@ NDims = numel(DimList); OutputSize = NaN(NDims,1);
 for iDim=1:1:NDims; OutputSize(iDim) = max(ObsGrid.Recon.(DimList{iDim}));end; clear iDim
 
 %order list of dimensions alphabetically
-[~,idx] = sortrows(table(fieldnames(ObsGrid.Recon)),[1],{'ascend'});
+[~,idx] = sortrows(table(fieldnames(ObsGrid.Recon)),[1],{'descend'});
 OutputSize = OutputSize(idx);
 DimList = DimList(idx);
 
