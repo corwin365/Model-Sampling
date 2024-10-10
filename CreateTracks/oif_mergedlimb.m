@@ -21,7 +21,7 @@ Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
 clear CoreSettings
 
 %instrument settings
-Settings.Instruments = {'GNSS','MLS','SABER'}; %list of instruments to include
+Settings.Instruments = {'HIRDLS','SABER'}; %list of instruments to include
 
 %geolocation - which data should we include?
 Settings.HeightScale = 5:0.5:60; %height grid to sample on.
@@ -30,8 +30,8 @@ Settings.LonRange    = [-180,180];
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2020,1,28);
-Settings.Dates.Sampling    = datenum(2020,1,28);
+Settings.Dates.Geolocation = datenum(2007,1,1);%datenum(2020,1,28);
+Settings.Dates.Sampling    = datenum(2020,1,20);%datenum(2020,1,28);
 
 %size of geographical subset regions. To produce daily global files, set to values > [360,180,24]
 Settings.Subsets = [60,30,3]; %deglon, deglat, hours
@@ -332,7 +332,7 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
 
         Track  = reduce_struct(Store.Data,  idx,{'OriginalFiles'},1);
         Weight = reduce_struct(Store.Weight,idx,{},1);
-        if SubSetCount == 35; stop; end
+
         %split into:
         % Recon: ONLY profile reconstruction data, to put the profiles back together
         % Track: track data, for computing how to sample, and also metadata for postprocessing

@@ -12,7 +12,11 @@ function Model = load_era5_levante(ObsGrid,MaxPrs,MinPrs)
 %2. file not found
 
 %path to model data
-ModelPath   = '/scratch/b/b382226/era5/';
+%  ModelPath   = '/scratch/b/b382226/era5/';
+% ModelPath   = '/data3/ERA5/fullfat';
+ModelPath   = 'D:\Data\ERA5\full_temp/2002/';
+%  ModelPath   = '/data2/ERA5_temp';
+% ModelPath = [getenv('BURSTBUFFER'),'/model/'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load the data for this day
@@ -36,12 +40,32 @@ idx = inrange(PrsScale,[MinPrs,MaxPrs]);
 
 %load the two days, cut them down to just the desired region, and merge them
 Day1   = rCDF(FileName1);
+if isfield(Day1,'hyai');
+  %data from Levante
+  Day1.time = DayNumber+Day1.time./24;
+else
+  %data from CDS
+  Day1.lon  = Day1.longitude;
+  Day1.lat  = Day1.latitude;
+  Day1.time = datenum(1900,1,1,Day1.time,0,0);
+end
+Day1.t = permute(Day1.t,[3,2,1]);
 Day1.t = Day1.t(:,:,idx,:);
-Day1.time = DayNumber+Day1.time./24;
+
 
 Day2   = rCDF(FileName2);
+if isfield(Day1,'hyai');
+  %data from Levante
+  Day2.time = DayNumber+Day2.time./24;
+else
+  %data from CDS
+  Day2.lon  = Day2.longitude;
+  Day2.lat  = Day2.latitude;
+  Day2.time = datenum(1900,1,1,Day2.time,0,0); 
+end
+Day2.t    = permute(Day2.t,[3,2,1]);
 Day2.t = Day2.t(:,:,idx,:);
-Day2.time = DayNumber+Day2.time./24+1;
+
 
 Store      = Day1; clear Day1
 Store.t    = cat(4,Store.t,Day2.t); 
@@ -70,11 +94,12 @@ clear idx MaxPrs MinPrs dn y FileName1 FileName2 ModelPath DayNumber
 %we're in the stratosphere, and have much bigger errors than thuis elsewhere
 
 % stick stuff in a struct
-Model.Lon  = Store.lon;
-Model.Lat  = Store.lat;
+Model.Lon  = Store.lon; 
+Model.Lat  = Store.lat; 
 Model.Time = Store.time;
 Model.T    = permute(Store.t,[4,1,2,3]);
 Model.Prs  = PrsScale'; 
+
 
 %longitude is 0-360, so we need to rejiggle into -180 to 180
 Lon = Model.Lon;

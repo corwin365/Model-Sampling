@@ -31,7 +31,7 @@ Settings.HeightScale = 15:0.5:50; %km
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2007,1,23);
+Settings.Dates.Geolocation = datenum(2020,1,23);
 Settings.Dates.Sampling    = datenum(2020,1,23);
 
 %size of geographical subset regions. To produce daily global files, set to values > [360,180,24]

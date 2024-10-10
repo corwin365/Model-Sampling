@@ -95,11 +95,12 @@ addParameter(p,'DensityPath','./common/saber_density_filled.mat',@isfile);   %pa
 addParameter(p,    'OutPath',                          'NOTSET', @isfolder); %output file. will be generated automatically below if set to 'NOTSET' or not supplied
  
 %arbitrary numbers used in the code. Most defaults have been selected via sensivity testing using 3D AIRS data.
-addParameter(p,     'MinSignal',  0.99,        IsPositive);     %fraction of total signal needed to produce final sample
+addParameter(p,     'MinSignal',  0.97,        IsPositive);     %fraction of total signal needed to produce final sample
 addParameter(p, 'SpecWeightMin',  1e-3,        IsPositive);     %when using specified weighting function, discard any values contributing less than this times the maximum
 addParameter(p,     'BlobScale',     3,        IsPositive);     %number of standard deviations to compute sensitivity out to (+- from centre)
 addParameter(p,   'MinZContrib',  0.02,        IsPositive);     %when rotating, discard vertical levels contributing less fractional weight than this
 addParameter(p,      'ZPadding',   0.5,        IsPositive);     %when rotating, vertical padding in decades of pressure
+addParameter(p,      'FineGrid',[NaN,NaN,NaN], IsPositive);     %specify point spacing of internal finegrid: [along-LOS km, across-LOS km, vertical decades p]. Overrides defaults set in instrument_settings.m
 
 %parse inputs
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -165,6 +166,10 @@ if ischar(Settings.OldData); clear OldData; OldData.ModelID = ''; end
 
 %are we including partial blobs that contain NaNs in their volume?
 if Settings.IncludeNaNs ~=1;  disp('Blobs containing any NaNs will be set to NaN');end
+
+%are we including partial blobs that contain NaNs in their volume?
+if ~isnan(sum(Settings.FineGrid)) ==1;  disp('Note: default FineGrid spacing for this instrument has been overridden manually');end
+
 
 %where shall we put our results? 
 if strcmp(Settings.OutPath,'NOTSET')

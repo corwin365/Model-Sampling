@@ -25,8 +25,8 @@ Settings.HeightRange = [20,60]; %km
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2020,1,20:1:60);
-Settings.Dates.Sampling    = datenum(2020,1,20:1:60);
+Settings.Dates.Geolocation = datenum(2020,1,20);%datenum(2007,1,13);%20:1:60);
+Settings.Dates.Sampling    = Settings.Dates.Geolocation%datenum(2020,1,20:1:60);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% check inputs
@@ -93,6 +93,12 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
     Data = struct();
     for iF=1:1:numel(Fields); Data.(Fields{iF}) = Airs.(Fields{iF}); end
     clear Airs Fields iF 
+
+    %some ret_zs are bad. Replace them if so
+    if nansum(Data.ret_z,'all') == 0;
+      Data.ret_z = [0	3	6	9	12	15	18	21	24	27	30	33	36	39	42	45	48	51	54	57	60	65	70	75	80	85	90]';
+    end
+
 
     %repmat the fields to all match
     sz = [size(Data.l1_lon),numel(Data.ret_z)];
@@ -305,7 +311,6 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
 
   %save track file
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
     save(OutFile,'Track','Recon','Weight');
   disp('--> Track file written')

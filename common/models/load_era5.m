@@ -31,13 +31,12 @@ PrsScale(1) = 0.01; %because it is, but my routine gives a NaN
 idx = inrange(PrsScale,[MinPrs,MaxPrs]);
 
 %load the two days, cut them down to just the desired region, and merge them
-Day1   = rCDF(FileName1);
+Day1   = rCDF(FileName1,2);
 try     Day1   = rmfield(Day1,{'u','v','lnsp','level'});%,'MetaData'});
 catch;  Day1   = rmfield(Day1,{'u','v',       'level'});%,'MetaData'});
 end
-Day1.t = Day1.t(:,:,idx,:);
 
-Day2   = rCDF(FileName2);
+Day2   = rCDF(FileName2,2);
 try     Day2   = rmfield(Day2,{'u','v','lnsp','level'});%,'MetaData'});
 catch;  Day2   = rmfield(Day2,{'u','v',       'level'});%,'MetaData'});
 end

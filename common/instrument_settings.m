@@ -34,34 +34,52 @@ if nargin== 1; Settings = struct(); Settings.SubSet = ''; end
 InstInfo = struct;
 
 
-%AIRS (2D)
-InstInfo.AIRS.FineGrid = [2,3,1/20];
-
-%AIRS (3D)
-InstInfo.AIRS3D.FineGrid = [1,1,1/20];
-InstInfo.AIRS3D.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
-
-%AIRS (3D) with fake dates
-InstInfo.AIRS3D_fakedates = InstInfo.AIRS3D;
-
-%COSMIC
-InstInfo.COSMIC.FineGrid = [10,0.5,1/80];
-
-%HIRDLS
-InstInfo.HIRDLS.FineGrid = [10,2,1/80];
-
-%limb data, split into regions
-InstInfo.limb_regions.FineGrid = [10,0.5,1/80];
-InstInfo.limb_regions.SubSetInString = ['_r',sprintf('%03d',Settings.SubSet)];
-
-%testing of new AVKs
-InstInfo.limb_regions_g  = InstInfo.limb_regions;
-InstInfo.limb_regions_2d = InstInfo.limb_regions;
-
-%gnss resolution test
-InstInfo.gnss_htest = InstInfo.limb_regions;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% set fine grid density for each instrument type
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+if ~isnan(sum(Settings.FineGrid)); 
+
+  %override option: set the finegrid to a specific value
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  InstInfo.(Instrument).FineGrid = Settings.FineGrid;
+
+else
+  %default finegrids for specified instrument types
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  %AIRS (2D)
+  InstInfo.AIRS.FineGrid = [2,3,1/20];
+  %AIRS (3D)
+  InstInfo.AIRS3D.FineGrid = [1,1,1/20];
+  %AIRS (3D) with fake dates
+  InstInfo.AIRS3D_fakedates = InstInfo.AIRS3D;
+  %COSMIC
+  InstInfo.COSMIC.FineGrid = [10,0.5,1/80];
+  %HIRDLS
+  InstInfo.HIRDLS.FineGrid = [10,2,1/80];
+  %limb data, split into regions
+  InstInfo.limb_regions.FineGrid = [10,0.5,1/80];
+  %gnss resolution test
+  InstInfo.gnss_htest = InstInfo.limb_regions;
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% if we have multiple files per day for an instrument,
+% how are the filenames formatted?
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if Settings.SubSet ~= 0;
+
+  %AIRS (3D)
+  InstInfo.AIRS3D.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
+
+  %limb data, split into regions
+  InstInfo.limb_regions.SubSetInString = ['_r',sprintf('%03d',Settings.SubSet)];
+
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %process and return
