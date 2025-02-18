@@ -2,7 +2,7 @@ clearvars
 addpath(genpath('../'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%produce OIF data for COSMIC, HIRDLS, SABER and MLS
+%produce OIF data for proposed ALICE instrument
 %
 %can divide the data into smaller geographic regions and temporal chunks,
 % in order to better fit very large models into memory.
@@ -15,30 +15,33 @@ addpath(genpath('../'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %path handling
-Settings.Instrument = 'limb_regions';
+Settings.Instrument = 'alice';
 [~,CoreSettings] = sampling_core_v3(' ',' ',0,'GetSettings',true);
 Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
 clear CoreSettings
 
 %instrument settings
-Settings.Instruments = {'HIRDLS','SABER','MLS'}; %list of instruments to include
+Settings.Instruments = {'ALICE'}; %list of instruments to include
 
 %geolocation - which data should we include?
-Settings.HeightScale = 5:0.5:60; %height grid to sample on.
+% Settings.HeightScale = [0.,0.67,1.33,2,2.67,3.33,4,4.67,5.33,6,6.67,7.33,8,8.67,9.33,10.,10.68,11.33,12,12.66,13.32,14,14.66,15.34,16,16.67,17.33,18,18.67,19.33,20.,20.67,21.33,22,22.67,23.33,24,24.67,25.33,26,26.68,27.33,28,28.66,29.32,30.,30.66,31.34,32,32.67,33.33,34,34.67,35.33,36,36.67,37.33,38,38.67,39.33,40.,40.67,41.33,42,42.68,43.33,44,44.66,45.32,46,46.66,47.34,48,48.67,49.33,50.,50.67,51.33,52,52.67,53.33,54,54.67,55.33,56,56.67,57.33,58,58.68,59.33,60.,60.66,61.32,62,62.66,63.34,64,64.67,65.33,66,66.67,67.33,68,68.67,69.33,70.,70.67,71.33,72,72.67,73.33,74,74.68,75.33,76,76.66,77.32,78,78.66,79.34,80];
+% Settings.Prs         = [1000	908.500000000000	825.400000000000	750	681.300000000000	619	562	511	464.200000000000	421.700000000000	383.100000000000	348.100000000000	316.200000000000	287.300000000000	261	237.100000000000	215	195.700000000000	177.800000000000	161.600000000000	147	133.400000000000	121.200000000000	110	100	90.8500000000000	82.5400000000000	75	68.1300000000000	61.9000000000000	56.2000000000000	51.1000000000000	46.4200000000000	42.1700000000000	38.3100000000000	34.8100000000000	31.6200000000000	28.7300000000000	26.1000000000000	23.7100000000000	21.5000000000000	19.5700000000000	17.7800000000000	16.1600000000000	14.7000000000000	13.3400000000000	12.1200000000000	11	10	9.08500000000000	8.25400000000000	7.50000000000000	6.81300000000000	6.19000000000000	5.62000000000000	5.11000000000000	4.64200000000000	4.21700000000000	3.83100000000000	3.48100000000000	3.16200000000000	2.87300000000000	2.61000000000000	2.37100000000000	2.15000000000000	1.95700000000000	1.77800000000000	1.61600000000000	1.47000000000000	1.33400000000000	1.21200000000000	1.10000000000000	1	0.908500000000000	0.825400000000000	0.750000000000000	0.681300000000000	0.619000000000000	0.562000000000000	0.511000000000000	0.464200000000000	0.421700000000000	0.383100000000000	0.348100000000000	0.316200000000000	0.287300000000000	0.261000000000000	0.237100000000000	0.215000000000000	0.195700000000000	0.177800000000000	0.161600000000000	0.147000000000000	0.133400000000000	0.121200000000000	0.110000000000000	0.100000000000000	0.0908500000000000	0.0825400000000000	0.0750000000000000	0.0681300000000000	0.0619000000000000	0.0562000000000000	0.0511000000000000	0.0464200000000000	0.0421700000000000	0.0383100000000000	0.0348100000000000	0.0316200000000000	0.0287300000000000	0.0261000000000000	0.0237100000000000	0.0215000000000000	0.0195700000000000	0.0177800000000000	0.0161600000000000	0.0147000000000000	0.0133400000000000	0.0121200000000000	0.0110000000000000	0.0100000000000000];
+Settings.HeightScale = [8,8.67,9.33,10.,10.68,11.33,12,12.66,13.32,14,14.66,15.34,16,16.67,17.33,18,18.67,19.33,20.,20.67,21.33,22,22.67,23.33,24,24.67,25.33,26,26.68,27.33,28,28.66,29.32,30.,30.66,31.34,32,32.67,33.33,34,34.67,35.33,36,36.67,37.33,38,38.67,39.33,40.,40.67,41.33,42,42.68,43.33,44,44.66,45.32,46,46.66,47.34,48,48.67,49.33,50.,50.67,51.33,52,52.67,53.33,54,54.67,55.33,56,56.67,57.33,58,58.68,59.33,60.,60.66,61.32,62,62.66,63.34,64,64.67,65.33,66,66.67,67.33,68,68.67,69.33,70.,70.67,71.33,72,72.67,73.33,74,74.68,75.33,76,76.66,77.32,78,78.66,79.34,80];
+Settings.Prs         = [316.200000000000	287.300000000000	261	237.100000000000	215	195.700000000000	177.800000000000	161.600000000000	147	133.400000000000	121.200000000000	110	100	90.8500000000000	82.5400000000000	75	68.1300000000000	61.9000000000000	56.2000000000000	51.1000000000000	46.4200000000000	42.1700000000000	38.3100000000000	34.8100000000000	31.6200000000000	28.7300000000000	26.1000000000000	23.7100000000000	21.5000000000000	19.5700000000000	17.7800000000000	16.1600000000000	14.7000000000000	13.3400000000000	12.1200000000000	11	10	9.08500000000000	8.25400000000000	7.50000000000000	6.81300000000000	6.19000000000000	5.62000000000000	5.11000000000000	4.64200000000000	4.21700000000000	3.83100000000000	3.48100000000000	3.16200000000000	2.87300000000000	2.61000000000000	2.37100000000000	2.15000000000000	1.95700000000000	1.77800000000000	1.61600000000000	1.47000000000000	1.33400000000000	1.21200000000000	1.10000000000000	1	0.908500000000000	0.825400000000000	0.750000000000000	0.681300000000000	0.619000000000000	0.562000000000000	0.511000000000000	0.464200000000000	0.421700000000000	0.383100000000000	0.348100000000000	0.316200000000000	0.287300000000000	0.261000000000000	0.237100000000000	0.215000000000000	0.195700000000000	0.177800000000000	0.161600000000000	0.147000000000000	0.133400000000000	0.121200000000000	0.110000000000000	0.100000000000000	0.0908500000000000	0.0825400000000000	0.0750000000000000	0.0681300000000000	0.0619000000000000	0.0562000000000000	0.0511000000000000	0.0464200000000000	0.0421700000000000	0.0383100000000000	0.0348100000000000	0.0316200000000000	0.0287300000000000	0.0261000000000000	0.0237100000000000	0.0215000000000000	0.0195700000000000	0.0177800000000000	0.0161600000000000	0.0147000000000000	0.0133400000000000	0.0121200000000000	0.0110000000000000	0.0100000000000000];
+
 Settings.LatRange    = [-90,90];
 Settings.LonRange    = [-180,180];
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2020,1,20:-1:1);%datenum(2020,1,28);
-Settings.Dates.Sampling    = datenum(2020,1,20:-1:1);%datenum(2020,1,28);
+Settings.Dates.Geolocation = datenum(2030,2,2); %not a typo
+Settings.Dates.Sampling    = datenum(2020,1,20);
 
 %size of geographical subset regions. To produce daily global files, set to values > [360,180,24]
 Settings.Subsets = [60,30,3]; %deglon, deglat, hours
 
 %when using 2d weighting functions, discard points where the value is less than this propertion of the max(abs())
 Settings.MinVal = 0.01;
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% instrument parameters
@@ -64,38 +67,11 @@ Settings.MinVal = 0.01;
 
 
 
-%GNSS
+%ALICE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Params.GNSS.ViewAngle     = 'Azim'; 
-Params.GNSS.WeightType    = '1dgauss';
-Params.GNSS.WeightDetails = [250,1.2,1.2];
-
-%HIRDLS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Params.HIRDLS.ViewAngle          = 227; 
-% Params.HIRDLS.WeightType         = '2d_field';
-% Params.HIRDLS.WeightDetails.File = 'hirdls_matrix_1d2davk.nc';
-% Params.HIRDLS.WeightDetails.Y    = 20/4;
-Params.HIRDLS.WeightType    = '1dgauss';
-Params.HIRDLS.WeightDetails = [150,20,1];
-
-%MLS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Params.MLS.ViewAngle       = 'LineOfSightAngle';
-Params.MLS.WeightType      = '1dgauss_z';
-Params.MLS.WeightDetails.X = [0,165]; %always 165km in the aLOS direction
-Params.MLS.WeightDetails.Y = [0,6;55,6;65,12;9e99,12]; %6km xLOS below stratopause, 12 above
-Params.MLS.WeightDetails.Z = [99e99,12;107.73,12;102.51,13;97.02,12;80.73,11;64.45,6.4;56.31,8.1;47.82,6.8;38.42,5.5;31.08,4.1;28.57,3.9;23.58,3.6;19.83,3.7;16.18,4.6;11.33,3.5;9.95,3.8;0,3.8]; %as specified by table 3.22.1 in MLS v5-0_data_quality_document
-
-
-%SABER
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Params.SABER.ViewAngle          = -90; 
-% Params.SABER.WeightType         = '2d_field';
-% Params.SABER.WeightDetails.File = 'saber_matrix_1d2davk.nc';
-% Params.SABER.WeightDetails.Y    = 50/4;
-Params.SABER.WeightType    = '1dgauss';
-Params.SABER.WeightDetails = [300,50,2];
+Params.ALICE.ViewAngle     = 180; 
+Params.ALICE.WeightType    = '1dgauss';
+Params.ALICE.WeightDetails = [100,10,1];
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -150,25 +126,29 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
       ExtraVars = {Params.(Settings.Instruments{iInst}).ViewAngle};
     end
 
-if strcmpi(Settings.Instruments{iInst},'HIRDLS'); Settings.Dates.Geolocation(iDay) = Settings.Dates.Geolocation(iDay) - datenum(2020,1,1) + datenum(2007,1,1); end
+    %load the observational track file
+    Grid = rCDF([LocalDataDir,'/corwin/alice/ALICE_800km_orbit_Jan_launch.nc']);
 
-    %load the observational data for this dat
-    Data = get_limbsounders(Settings.Dates.Geolocation(iDay),   ...
-                            Settings.Instruments{iInst} ,       ...
-                            'HeightScale',Settings.HeightScale, ...
-                            'FileSource', true,                 ...
-                            'TimeHandling',3,                   ...
-                            'AdditionalVars',ExtraVars,         ...
-                            'DateWarning',false);
-if strcmpi(Settings.Instruments{iInst},'HIRDLS'); Settings.Dates.Geolocation(iDay) = Settings.Dates.Geolocation(iDay) - datenum(2007,1,1) + datenum(2020,1,1); end
+    %convert datetime to Matlab units
+    y = floor(Grid.date./10000);
+    m = floor(Grid.date./100)-y.*100;
+    d = floor(Grid.date)-y.*10000 - m.*100;
+    time = datenum(y,m,d)+Grid.time./24;
+    clear y m d
 
-    if numel(Data.Alt) == 0;
-      disp(['--> No data found for ',Settings.Instruments{iInst}]);
-      clear Data ExtraVars
-      continue; 
-    end
-    Data = rmfield(Data,{'Temp'}); %where we're going we don't need T
-    Data.Prs = Data.Pres; Data = rmfield(Data,'Pres'); %rename variable for backwards compatibility
+    %select day of interest
+    OnThisDay = find(floor(time) == Settings.Dates.Geolocation(iDay));
+    Grid.Lat = Grid.Lat(:,OnThisDay); Grid.Lon = Grid.Lon(:,OnThisDay); time = time(OnThisDay);
+
+    %put everything into a get_limbsounders-style struct
+    Data.Lat  = repmat(Grid.Lat,1,1,numel(Settings.HeightScale));
+    Data.Lon  = repmat(Grid.Lon,1,1,numel(Settings.HeightScale));
+    Data.Time = repmat(time',32,1,numel(Settings.HeightScale));
+    Data.Alt  = repmat(permute(Settings.HeightScale,[1,3,2]),32,size(Data.Lon,2),1);
+    Data.Prs  = repmat(permute(Settings.Prs,[1,3,2]),32,size(Data.Lon,2),1);
+    clear time Grid
+
+
 
     % %finalise the viewing angle
     if ~isnumeric(Params.(Settings.Instruments{iInst}).ViewAngle); 
@@ -179,13 +159,14 @@ if strcmpi(Settings.Instruments{iInst},'HIRDLS'); Settings.Dates.Geolocation(iDa
       Data = rmfield(Data,ExtraVars);
       Data.ViewAngleH = a;
     else
-      %find the travel direction at each point
-      LatScale = nanmean(Data.Lat,2);
-      LonScale = nanmean(Data.Lon,2);
-      Azim = azimuth(LatScale(1:end-1),LonScale(1:end-1),LatScale(2:end),LonScale(2:end))';
+      %find the travel direction at each point, using the centre track
+      LatScale = squeeze(Data.Lat(16,:,1));
+      LonScale = squeeze(Data.Lon(16,:,1));
+
+      Azim = azimuth(LatScale(1:end-1),LonScale(1:end-1),LatScale(2:end),LonScale(2:end));
       Azim = [NaN,Azim]; %add back missing point due to the above shifting around
       Azim(1:2) = Azim(3); %should be very close to true for any realistic orbital pattern
-      Data.ViewAngleH = repmat(wrapTo180(360-((360-Azim)+Params.(Settings.Instruments{iInst}).ViewAngle))',1,size(Data.Alt,2));
+      Data.ViewAngleH = repmat(wrapTo180(360-((360-Azim)+Params.(Settings.Instruments{iInst}).ViewAngle)),32,1,size(Data.Alt,3));
     end
 
     %add an identifier for the instrument, so we can merge them together
@@ -257,9 +238,7 @@ if strcmpi(Settings.Instruments{iInst},'HIRDLS'); Settings.Dates.Geolocation(iDa
     % of the original profiles
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    x = 1:1:size(Data.Lat,1);
-    z = 1:1:size(Data.Lat,2);
-    [Data.z,Data.x] = meshgrid(z,x);
+    [Data.x,Data.y,Data.z] = ndgrid(1:1:size(Data.Lat,1),1:1:size(Data.Lat,2),1:1:size(Data.Lat,3)); %grid
 
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -306,9 +285,10 @@ if strcmpi(Settings.Instruments{iInst},'HIRDLS'); Settings.Dates.Geolocation(iDa
   if exist(Settings.OutDir,'dir') ~= 7; mkdir(Settings.OutDir); end  
 
   %we don't want profiles to be split across regions. create a geolocation array that is just a single lat and lon for each profile
-  RegionLat  = nanmedian(Store.Data.Lat, 2);
-  RegionLon  = nanmedian(Store.Data.Lon, 2);
-  RegionTime = nanmedian(Store.Data.Time,2) + Settings.Dates.Geolocation(iDay) - Settings.Dates.Sampling(iDay);
+  RegionLat  = squeeze(nanmedian(Store.Data.Lat, [1,3]));
+  RegionLon  = squeeze(nanmedian(Store.Data.Lon, [1,3]));
+  RegionTime = squeeze(nanmedian(Store.Data.Time, [1,3]) + Settings.Dates.Geolocation(iDay) - Settings.Dates.Sampling(iDay));
+
 
   %divide data up into geographic regions
   disp('--> Generating output and dividing into regions')
@@ -318,7 +298,7 @@ if strcmpi(Settings.Instruments{iInst},'HIRDLS'); Settings.Dates.Geolocation(iDa
       for TimeBand=(Settings.Dates.Geolocation(iDay):Settings.Subsets(3)/24:Settings.Dates.Geolocation(iDay)+1) 
 
         %increment file counter
-        SubSetCount = SubSetCount+1;        
+        SubSetCount = SubSetCount+1      
 
 
         %find data in the box
@@ -333,8 +313,8 @@ if strcmpi(Settings.Instruments{iInst},'HIRDLS'); Settings.Dates.Geolocation(iDa
         %pull out the necessary data
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        Track  = reduce_struct(Store.Data,  idx,{'OriginalFiles'},1);
-        Weight = reduce_struct(Store.Weight,idx,{},1);
+        Track  = reduce_struct(Store.Data,  idx,{'OriginalFiles'},2);
+        Weight = reduce_struct(Store.Weight,idx,{},2);
 
         %split into:
         % Recon: ONLY profile reconstruction data, to put the profiles back together
@@ -345,18 +325,19 @@ if strcmpi(Settings.Instruments{iInst},'HIRDLS'); Settings.Dates.Geolocation(iDa
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         Recon = struct();
-        [Recon.x,Recon.z] = meshgrid(1:1:size(Track.Lat,1),1:1:size(Track.Lat,2));
-        Recon.x = Recon.x(:); Recon.z = Recon.z(:);
+        [Recon.x,Recon.y,Recon.z] = meshgrid(1:1:size(Track.Lat,1),1:1:size(Track.Lat,2),1:1:size(Track.Lat,3));
+        Recon.x = Recon.x(:);Recon.y = Recon.y(:); Recon.z = Recon.z(:);
+
         F = fieldnames(Track);
         for iF=1:1:numel(F)
           if     strcmp(F{iF},'OriginalFiles');         continue;
-          elseif strcmp(F{iF},'x') | strcmp(F{iF},'z'); Track =rmfield(Track,F{iF});
-          else                                          Track.(F{iF}) = flatten(Track.(F{iF})');
+          elseif strcmp(F{iF},'x') | strcmp(F{iF},'y') | strcmp(F{iF},'z'); Track =rmfield(Track,F{iF});
+          else                                                              Track.(F{iF}) = flatten(Track.(F{iF}));
           end
         end
         F = fieldnames(Weight);
         for iF=1:1:numel(F)
-          Weight.(F{iF}) = flatten(Weight.(F{iF})');
+          Weight.(F{iF}) = flatten(Weight.(F{iF}));
         end        
       
 

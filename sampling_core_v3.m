@@ -107,6 +107,7 @@ addParameter(p,      'FineGrid',[NaN,NaN,NaN], IsPositive);     %specify point s
 
 parse(p,Instrument,ModelName,DayNumber,varargin{:});
 Settings = p.Results; Settings.MasterPath = MasterPath; clear MasterPath
+if isfield(Settings,'OldData'); OldData = Settings.OldData; end
 
 %do some preprocessing based on the above
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -258,10 +259,11 @@ clear ExtraInfo
 if strcmp(ModelName,OldData.ModelID) == 1 ...
        && DayNumber >= min(OldData.Time)  ...
        && DayNumber <  max(OldData.Time) %this needs to be < rather than <= as we may have the first timestep of the day in memory from the last day
-   
+
   %same day as last loop - just call the data back up from memory
   Interpolants = OldData.I;
   disp(['Using previously loaded data and interpolants for ',ModelName,' on ',datestr(DayNumber)]);
+  disp('**Be careful if using spatially-subsetted data, only time validity has been checked**')
                  
 else
      

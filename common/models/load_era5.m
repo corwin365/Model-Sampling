@@ -32,23 +32,38 @@ idx = inrange(PrsScale,[MinPrs,MaxPrs]);
 
 %load the two days, cut them down to just the desired region, and merge them
 Day1   = rCDF(FileName1,2);
-try     Day1   = rmfield(Day1,{'u','v','lnsp','level'});%,'MetaData'});
-catch;  Day1   = rmfield(Day1,{'u','v',       'level'});%,'MetaData'});
-end
+% try     Day1   = rmfield(Day1,{'u','v','lnsp','level'});%,'MetaData'});
+% catch;  Day1   = rmfield(Day1,{'u','v',       'level'});%,'MetaData'});
+% end
+Day1.t = Day1.t(:,:,idx,:);
 
 Day2   = rCDF(FileName2,2);
-try     Day2   = rmfield(Day2,{'u','v','lnsp','level'});%,'MetaData'});
-catch;  Day2   = rmfield(Day2,{'u','v',       'level'});%,'MetaData'});
-end
+% try     Day2   = rmfield(Day2,{'u','v','lnsp','level'});%,'MetaData'});
+% catch;  Day2   = rmfield(Day2,{'u','v',       'level'});%,'MetaData'});
+% end
 Day2.t = Day2.t(:,:,idx,:);
+
+%convert time units. These can differ depending on when the data were downloaded from the CDS, ugh.
+for File=1:2
+  switch File
+    case 1; d = Day1;
+    case 2; d = Day2;
+  end
+  if isfield(d,'valid_time'); d.time = datenum(1970,1,1,0,0,d.valid_time);
+  else;                       d.time = datenum(1900,1,1,d.time,0,0);
+  end
+  switch File
+    case 1; Day1 = d;
+    case 2; Day2 = d;
+  end
+end
 
 Store      = Day1; clear Day1
 Store.t    = cat(4,Store.t,Day2.t); 
 Store.time = cat(1,Store.time,Day2.time);
 clear Day2
 
-%convert time units
-Store.time = datenum(1900,1,1,Store.time,0,0);
+
 
 %tidy up
 clear idx MaxPrs MinPrs dn y FileName1 FileName2 ModelPath DayNumber
@@ -76,6 +91,7 @@ Model.Lat  = Store.latitude;
 Model.Time = Store.time;
 Model.T    = permute(Store.t,[4,1,2,3]);
 Model.Prs  = PrsScale'; 
+
 
 %longitude is 0-360, so we need to rejiggle into -180 to 180
 Lon = Model.Lon;
