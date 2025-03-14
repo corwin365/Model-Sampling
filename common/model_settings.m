@@ -27,9 +27,9 @@ ModelInfo.cesm_ck.Arguments = 'ObsGrid';
 ModelInfo.cfsr.FuncName  = 'load_cfsr';
 ModelInfo.cfsr.Arguments = 'DayNumber';
 
-%ECMWF Forecasts
-ModelInfo.ec_fc.FuncName  = 'load_ecmwf_forecast';
-ModelInfo.ec_fc.Arguments = 'DayNumber,Settings.HoursAhead,Settings.MaxPrs';
+%ECMWF Forecasts - Greenland forecasts downloaded in 2025
+ModelInfo.greenland_fc.FuncName  = 'load_greenland_forecast';
+ModelInfo.greenland_fc.Arguments = 'ObsGrid,Settings.ForecastTime,Settings.MaxPrs';
 
 %ECMWF operational analysis
 ModelInfo.ecmwf_opal.FuncName  = 'load_ecmwf_opal';

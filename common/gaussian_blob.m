@@ -1,5 +1,5 @@
 
-  function [Fine,W] = gaussian_blob(Sample,Settings)
+  function [Fine,W] = gaussian_blob(Sample,ObsGrid,Settings)
 
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -84,7 +84,7 @@ addParameter(p,  'ReportEvery',   1000,  IsPositiveInteger);     %if TextUpdate 
 addParameter(p,      'MinPrs' ,      0,         IsPositive);     %minimum pressure level, i.e. top height. If set to zero, uses model top
 addParameter(p,      'MaxPrs' ,   1100,         IsPositive);     %maximum pressure level, i.e. bottom height.
 addParameter(p,       'SubSet',      0,  IsPositiveInteger);     %which subfile within the specified day to work on - used e.g. for AIRS granule numbers
-addParameter(p,   'HoursAhead',      0,      IsNonNegative);     %if using forecast data, how many hours in advance?
+addParameter(p, 'ForecastTime',      0,      IsNonNegative);     %if using forecast data, what launch time of model should we use?
 
 %passed-through data structures
 addParameter(p,     'OldData','NOTSET',          @isstruct);    %do we have a previously-used set of model interpolants in memory? 
@@ -152,12 +152,10 @@ else
   disp(['Processing subset ',sprintf('%06d',Settings.SubSet)])
 end
 
-%if we're using forecast data, we need to specify how far ahead a forecast
-%we want. This will be used by the model selection subroutine to select
-%what data to feed back to the sampling parent
-if Settings.HoursAhead ~= 0;
-  disp(['Using ',num2str(Settings.HoursAhead),' hour forecast'])
-  ForecastOutString = ['_fc',sprintf('%06d',Settings.HoursAhead),'hrs'];
+%if we're using forecast data, we need to specify the initialisation time of the model
+if Settings.ForecastTime ~= 0;
+  disp(['Using forecast initialised at ',datestr(Settings.ForecastTime)])
+  ForecastOutString = ['_fc_',strrep(num2str(Settings.ForecastTime),'.','p'),'_'];
 else
   ForecastOutString = '';
 end
@@ -509,6 +507,9 @@ disp(['Sampling complete for ',ModelName,' as ',Instrument,' on ',datestr(DayNum
 %save end time so we know how long it all took (especially useful for sensitivity testing!)
 RunTime.End = datenum(now);
 
+%clear OutData from the Settings struct or it'll be saved
+Settings = rmfield(Settings,'OldData');
+
 %write the output file
 if Settings.SaveTOnly == false
   save(Settings.OutPath,'Sampled_Data','Settings','RunTime','-v7.3');
@@ -631,6 +632,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   if strcmpi(WeightType,'gaussian');
 
     %'classic' set of 1D gaussians for each dimension. Easy.
+    %the old 1D height funciton is inside gaussian_blob...
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     %get the weight values
@@ -642,7 +644,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
     if isnan(Sample.WeightX + Sample.WeightY + Sample.WeightZ); InnerError = 2;return;  end
 
     %compute the fine grid and weights thereon
-    [Fine,W] = gaussian_blob(Sample,Settings);
+    [Fine,W] = gaussian_blob(Sample,ObsGrid,Settings);
 
   elseif strcmp(WeightType(1:12),'specified_2d')
 

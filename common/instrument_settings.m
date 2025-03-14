@@ -51,6 +51,8 @@ else
 
   %AIRS (2D)
   InstInfo.AIRS.FineGrid = [2,3,1/20];
+  %CRIS (2D)
+  InstInfo.CRIS.FineGrid = [2,3,1/20];  
   %AIRS (3D)
   InstInfo.AIRS3D.FineGrid = [1,1,1/20];
   %AIRS (3D) with fake dates
@@ -73,6 +75,12 @@ end
 
 if Settings.SubSet ~= 0;
 
+  %AIRS (2D)
+  InstInfo.AIRS.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
+
+  %CRIS (2D)
+  InstInfo.CRIS.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
+  
   %AIRS (3D)
   InstInfo.AIRS3D.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
 

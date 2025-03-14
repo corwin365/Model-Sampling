@@ -19,13 +19,15 @@ Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
 clear CoreSettings
 
 %geolocation - which data should we include?
-Settings.LatRange    = [-90,90];
-Settings.LonRange    = [-180,180];
+% Settings.LatRange    = [-90,90];
+% Settings.LonRange    = [-180,180];
+Settings.LatRange    = [55,75];
+Settings.LonRange    = [-75,-10];
 Settings.HeightRange = [20,60]; %km
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2020,1,20);%datenum(2007,1,13);%20:1:60);
+Settings.Dates.Geolocation = datenum(2023,1,2);%datenum(2007,1,13);%20:1:60);
 Settings.Dates.Sampling    = Settings.Dates.Geolocation%datenum(2020,1,20:1:60);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,7 +74,7 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
   for iGranule=1:1:240;
     
     OutFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(Settings.Dates.Sampling(iDay)),'_g',sprintf('%03d',iGranule),'.mat'];
-    if exist(OutFile,'file'); continue;end
+    if exist(OutFile,'file');  disp(['Skipping granule ',num2str(iGranule),' - already done']);  continue;end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %load data, including horiz viewing angle
@@ -82,6 +84,12 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
     [Airs,~,Error] = prep_airs_3d(Settings.Dates.Sampling(iDay),iGranule,'LoadOnly',true);
     if Error ~= 0; clear Airs Error; continue; end %failed to load data
     clear Error
+
+    %is any in our region?
+    if max(Airs.l1_lat(:))< min(Settings.LatRange); disp(['Skipping granule ',num2str(iGranule),' - out of geographic range']); continue; end
+    if min(Airs.l1_lat(:))> max(Settings.LatRange); disp(['Skipping granule ',num2str(iGranule),' - out of geographic range']); continue; end
+    if max(Airs.l1_lon(:))< min(Settings.LonRange); disp(['Skipping granule ',num2str(iGranule),' - out of geographic range']); continue; end
+    if min(Airs.l1_lon(:))> max(Settings.LonRange); disp(['Skipping granule ',num2str(iGranule),' - out of geographic range']); continue; end
 
     %convert filename from path to just name
     [~,a,c] = fileparts(Airs.Source);
