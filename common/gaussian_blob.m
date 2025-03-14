@@ -48,7 +48,7 @@
     Channel.W   = ObsGrid.Weight.ZFuncs.Weights(Channel.ID,:); %keep for later
 
     %discard parts that contribute very little
-    Channel.W(Channel.W < Settings.MinZContrib.*sum(Channel.W(:)),'omitnan') = 0;
+    Channel.W(Channel.W < Settings.MinZContrib.*sum(Channel.W(:),'omitnan')) = 0;
 
     %set NaNs to zero
     Channel.W(isnan(Channel.W)) = 0;
@@ -60,6 +60,7 @@
 
     %find highest and lowest prs level remaining
     z = Channel.Prs(find(Channel.W > 0));
+
     z = [max(z),min(z)]+[1,-1].*Settings.ZPadding;
   end
 
