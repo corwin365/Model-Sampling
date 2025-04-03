@@ -55,9 +55,10 @@ switch WantedModel
     return
 end
 
-%working scratch space
-ScratchPath = '~/scratch/working/';
+% %working scratch space
+% ScratchPath = '~/scratch/working/';
 
+ScratchPath = [LocalDataDir,'/corwin/'];
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,12 +74,12 @@ Lookup = [ScratchPath,'/',WantedModel,'.mat'];
 if exist(Lookup,'file')
   %check it contains what we need
   A = load(Lookup);
-  %generate a checksum of the list of file names
-  if sum(getByteStreamFromArray(Files)) == sum(getByteStreamFromArray(A.Files))
+  % %generate a checksum of the list of file names
+  % if sum(getByteStreamFromArray(Files)) == sum(getByteStreamFromArray(A.Files))
     disp('Using timestamps from lookup file')
     Files = A.Files;
     TimeStore = A.TimeStore;
-  end
+  % end
   clear A;
 end
 
@@ -151,8 +152,8 @@ Range = NaN(5,4);
 Range(1,:) = [floor(min(ObsGrid.Track.Lon)),ceil(max(ObsGrid.Track.Lon)), ...
               floor(min(ObsGrid.Track.Lat)),ceil(max(ObsGrid.Track.Lat))];
 
-%find the maximum extra distance a blob could add to the edge of the region (with 25% padding)
-MaxDistance = max([ObsGrid.Weight.X;ObsGrid.Weight.Y]).*BlobScale.*1.25;
+%find the maximum extra distance a blob could add to the edge of the region (with 10% padding)
+MaxDistance = max([ObsGrid.Weight.X;ObsGrid.Weight.Y]).*BlobScale.*1.1;
 
 %find where this puts the range, by taking a line diagonally from each corner
 Range(2,[4,2]) = reckon(Range(1,4),Range(1,2),km2deg(MaxDistance),45);
@@ -224,20 +225,25 @@ for iFile=1:1:numel(Files)
       clear nx ny
     end
 
-    %work out which timesteps this *observation* file covers. If none,find the single closest. 
-    %Pad by 3 hours each way to make sure we're not *just* missing something.
-    InRange = find(TimeStore(iFile,:) <= nanmax(ObsGrid.Track.Time(:)-3/24) ...
-                 & TimeStore(iFile,:) >= nanmin(ObsGrid.Track.Time(:)+3/24));
-    if numel(InRange) == 0; [~,InRange] = min(abs(TimeStore(iFile,:)-nanmean(ObsGrid.Track.Time(:)))); end
+    % %work out which timesteps this *observation* file covers. If none,find the single closest. 
+    % %Pad by 3 hours each way to make sure we're not *just* missing something.
+    % InRange = find(TimeStore(iFile,:) <= nanmax(ObsGrid.Track.Time(:)+3/24) ...
+    %              & TimeStore(iFile,:) >= nanmin(ObsGrid.Track.Time(:)-3/24));
+    % if numel(InRange) == 0; [~,InRange] = min(abs(TimeStore(iFile,:)-nanmean(ObsGrid.Track.Time(:)))); end
+
+    %find the closest timestep to every obs point, then make a list of the unique entries
+    [~,idx] = min(bsxfun(@(x,y)abs(x-y),ObsGrid.Track.Time(:),TimeStore(iFile,:)),[],2);
+    TimeIndices = unique(idx);
+
 
     %if the number of timesteps is less than the total in the file, subset the file in time
-    if numel(InRange) < size(TimeStore,2)
+    if numel(TimeIndices) < size(TimeStore,2)
       Command = [Command, ' -seltimestep'];
-      for iTime=1:1:numel(InRange); Command = [Command,',',num2str(InRange(iTime))]; end
+      for iTime=1:1:numel(TimeIndices); Command = [Command,',',num2str(TimeIndices(iTime))]; end
     end
 
     %store the times in the steps
-    FileTimes(iFile,:) = TimeStore(iFile,InRange(iTime));
+    FileTimes(iFile,:) = TimeStore(iFile,TimeIndices(iTime));
 
     %call the grid
     if isfield(Paths,'Grid')
@@ -284,7 +290,7 @@ for iFile=1:1:numel(Files)
   end
 
 end; clear iFile
-clear Range ff InRange Command status PrsFile 
+clear Range ff TimeIndices Command status PrsFile 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% great! Let's load the files and get what we need out of them

@@ -53,6 +53,11 @@
     %set NaNs to zero
     Channel.W(isnan(Channel.W)) = 0;
 
+    if sum(Channel.W(:)) == 0
+      error('Weighting function has no levels contributing more than MinContrib setting, stopping')
+      stop
+    end
+
     %remove low altitudes
     GoodPrs = find(Channel.Prs < log10(Settings.MaxPrs));
     Channel.W   = Channel.W(   GoodPrs);

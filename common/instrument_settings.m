@@ -52,7 +52,8 @@ else
   %AIRS (2D)
   InstInfo.AIRS.FineGrid = [2,3,1/20];
   %CRIS (2D)
-  InstInfo.CRIS.FineGrid = [2,3,1/20];  
+  InstInfo.CRISj1.FineGrid = [2,3,1/20];  
+  InstInfo.CRISsnpp.FineGrid = [2,3,1/20];  
   %AIRS (3D)
   InstInfo.AIRS3D.FineGrid = [1,1,1/20];
   %AIRS (3D) with fake dates
@@ -65,6 +66,9 @@ else
   InstInfo.limb_regions.FineGrid = [10,0.5,1/80];
   %gnss resolution test
   InstInfo.gnss_htest = InstInfo.limb_regions;
+  % ALICE/STRIVE
+  InstInfo.alice.FineGrid = [20,2,1/80];
+
 
 end
 
@@ -79,13 +83,17 @@ if Settings.SubSet ~= 0;
   InstInfo.AIRS.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
 
   %CRIS (2D)
-  InstInfo.CRIS.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
+  InstInfo.CRISj1.SubSetInString   = ['_g',sprintf('%03d',Settings.SubSet)];
+  InstInfo.CRISsnpp.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];  
   
   %AIRS (3D)
   InstInfo.AIRS3D.SubSetInString = ['_g',sprintf('%03d',Settings.SubSet)];
 
   %limb data, split into regions
   InstInfo.limb_regions.SubSetInString = ['_r',sprintf('%03d',Settings.SubSet)];
+
+  % ALICE/STRIVE
+  InstInfo.alice.SubSetInString = ['_r',sprintf('%03d',Settings.SubSet)];
 
 end
 

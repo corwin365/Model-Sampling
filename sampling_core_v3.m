@@ -98,7 +98,7 @@ addParameter(p,    'OutPath',                          'NOTSET', @isfolder); %ou
 addParameter(p,     'MinSignal',  0.97,        IsPositive);     %fraction of total signal needed to produce final sample
 addParameter(p, 'SpecWeightMin',  1e-3,        IsPositive);     %when using specified weighting function, discard any values contributing less than this times the maximum
 addParameter(p,     'BlobScale',     3,        IsPositive);     %number of standard deviations to compute sensitivity out to (+- from centre)
-addParameter(p,   'MinZContrib',  0.02,        IsPositive);     %when rotating, discard vertical levels contributing less fractional weight than this
+addParameter(p,   'MinZContrib',  0.02,        IsNonNegative);  %when rotating, discard vertical levels contributing less fractional weight than this
 addParameter(p,      'ZPadding',   0.5,        IsPositive);     %when rotating, vertical padding in decades of pressure
 addParameter(p,      'FineGrid',[NaN,NaN,NaN], IsPositive);     %specify point spacing of internal finegrid: [along-LOS km, across-LOS km, vertical decades p]. Overrides defaults set in instrument_settings.m
 
@@ -632,7 +632,7 @@ function [InnerError,TSample,TSimple] = innercore(iSample,ObsGrid,Interpolants,S
   if strcmpi(WeightType,'gaussian');
 
     %'classic' set of 1D gaussians for each dimension. Easy.
-    %the old 1D height funciton is inside gaussian_blob...
+    %the old 1D height function is inside gaussian_blob...
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     %get the weight values

@@ -21,8 +21,8 @@ clear CoreSettings
 %geolocation - which data should we include?
 % Settings.LatRange    = [-90,90];
 % Settings.LonRange    = [-180,180];
-Settings.LatRange    = [55,75];
-Settings.LonRange    = [-75,-10];
+Settings.LatRange    = [55,90];
+Settings.LonRange    = [-180,180];
 Settings.HeightRange = [20,60]; %km
 
 %dates to load geolocation from, and dates to sample from. These must line up
