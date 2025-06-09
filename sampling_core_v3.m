@@ -68,7 +68,6 @@ addRequired(p,'DayNumber',   @isnumeric);
 %%%%%%%%%%%%%%%%%%%
 
 %flags
-addParameter(p, 'SensTestMode',  false,        @islogical);     %use sensitivity-testing mode? Note that this overrides many of these settings
 addParameter(p,      'Clobber',  false,        @islogical);     %overwrite previous output filess (assume no)
 addParameter(p,     'Parallel',  false,        @islogical);     %parallel or linear mode? (assumes single-threaded)
 addParameter(p,   'TextUpdate',   true,        @islogical);     %display progress of inner sampling loop to screen in linear mode? (yes)
@@ -88,7 +87,6 @@ addParameter(p, 'ForecastTime',      0,      IsNonNegative);     %if using forec
 
 %passed-through data structures
 addParameter(p,     'OldData','NOTSET',          @isstruct);    %do we have a previously-used set of model interpolants in memory? 
-addParameter(p, 'Sensitivity','NOTSET',          @isstruct);    %parameters for sensitivity-testing mode
 
 %paths
 addParameter(p,'DensityPath','./common/saber_density_filled.mat',@isfile);   %path to density data
@@ -174,7 +172,7 @@ if ~isnan(sum(Settings.FineGrid)) ==1;  disp('Note: default FineGrid spacing for
 if strcmp(Settings.OutPath,'NOTSET')
   Settings.OutPath = [Settings.MasterPath,'/output/',Instrument,'/',ModelName,'/sampled_',num2str(DayNumber),SubSetOutString,ForecastOutString,'.mat'];
   %make sure this directory exists!
-  if Settings.SensTestMode ~= 1 && exist([Settings.MasterPath,'/output/',Instrument,'/',ModelName],'dir') ~= 7;
+  if exist([Settings.MasterPath,'/output/',Instrument,'/',ModelName],'dir') ~= 7;
     mkdir([Settings.MasterPath,'/output/',Instrument,'/',ModelName]); end
 end
 
