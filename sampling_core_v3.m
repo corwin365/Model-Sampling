@@ -25,6 +25,7 @@ function [Error,OldData] = sampling_core_v3(Instrument,ModelName,DayNumber,varar
 %4. sensitivity testing, and output path not set
 %5. instrument not supported
 %6. model not supported
+%7. scattered interpolation requested but Model struct supplied is gridded, i.e. axes specified. Replace with a 1D set of geolocation arrays of the same size as the data.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -89,8 +90,8 @@ addParameter(p, 'ForecastTime',      0,      IsNonNegative);     %if using forec
 addParameter(p,     'OldData','NOTSET',          @isstruct);    %do we have a previously-used set of model interpolants in memory? 
 
 %paths
-addParameter(p,'DensityPath','./common/saber_density_filled.mat',@isfile);   %path to density data
-addParameter(p,    'OutPath',                          'NOTSET', @isfolder); %output file. will be generated automatically below if set to 'NOTSET' or not supplied
+addParameter(p,'DensityPath','./common/saber_density_filled.mat',@isfile); %path to density data
+addParameter(p,    'OutPath',                          'NOTSET', @ischar); %output file. will be generated automatically below if set to 'NOTSET' or not supplied
  
 %arbitrary numbers used in the code. Most defaults have been selected via sensivity testing using 3D AIRS data.
 addParameter(p,     'MinSignal',  0.97,        IsPositive);     %fraction of total signal needed to produce final sample
@@ -175,6 +176,7 @@ if strcmp(Settings.OutPath,'NOTSET')
   if exist([Settings.MasterPath,'/output/',Instrument,'/',ModelName],'dir') ~= 7;
     mkdir([Settings.MasterPath,'/output/',Instrument,'/',ModelName]); end
 end
+
 
 %check if we've already done this day
 if exist(Settings.OutPath,'file') ~= 0 && Settings.Clobber == 0
@@ -350,13 +352,27 @@ else
     %but it gonna be slow.
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+    %check geolocation arrays are the same size as the data
+    Fields = {'Lon','Lat','Time','Prs'};
+    for iF=1:1:numel(Fields)
+      if ~isequal(size(Model.T),size(Model.(Fields{iF}))); 
+        Error = 7; 
+        return
+      end
+    end
+    clear Fields iF
+
+    %ok, we're fine
     disp('Using scattered interpolation to generate model fields')
 
     %produce interpolant for each timestep
     %scatteredinterpolant only takes doubles, which is frustrating...
     for iTime=1:1:numel(Model.Time)
-      F = scatteredInterpolant(double(Model.LonI(:)),double(Model.LatI(:)),double(Model.PrsI(:)), ...
-                               double(squeeze(Model.TI(iTime,:)))');
+     
+      F = scatteredInterpolant(double(Model.Lon(:)),double(Model.Lat(:)),double(Model.Prs(:)), ...
+                               double(squeeze(Model.T(iTime,:)))');
+
       Interpolants.(['t',num2str(iTime)]) = F;
     end
     Interpolants.Time = Model.Time;
@@ -456,6 +472,7 @@ RunTime.End = datenum(now);
 Settings = rmfield(Settings,'OldData');
 
 %write the output file
+Settings.OutPath
 if Settings.SaveTOnly == false
   save(Settings.OutPath,'Sampled_Data','Settings','RunTime','-v7.3');
 else
