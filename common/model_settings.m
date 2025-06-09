@@ -102,6 +102,10 @@ ModelInfo.dyamond_ifs4km.Arguments = 'ObsGrid,WantedModel,FixedPFlag,Settings.Bl
 ModelInfo.dyamond_ifs4km.WantedModel = 'ifs4km';
 ModelInfo.dyamond_ifs4km.FixedPFlag  = 1;
 
+%idealised wave over the Urals for Leverhulme proposal
+ModelInfo.lurals.FuncName  = 'load_leverhulme_urals';
+ModelInfo.lurals.Arguments = 'DayNumber';
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OK, call the model data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

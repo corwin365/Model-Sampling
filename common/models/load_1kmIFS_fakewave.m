@@ -9,7 +9,7 @@ function Model = load_1kmIFS_fakewave(ObsGrid)
 %%possible errors:
 %0: success
 %2. file not found
-
+ 
 %model data path
 ModelPath   = [LocalDataDir,'/emily/1km_data'];
 

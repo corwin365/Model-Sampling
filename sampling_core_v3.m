@@ -401,59 +401,6 @@ end
 %               
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OK, back to work. 
-%We want to do sensitivity testing of our grid shapes
-%but we also want to use the standard core so bugs don't propagate through
-%duplicated and then modified code
-%so, this section overrides primary grid-defining variables if we're in
-%sensitivity-testing mode
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-if Settings.SensTestMode ~= 0
-
-  Sensitivity = Settings.Sensitivity;
-  
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
-  %sensitivity-testing mode is active. change grid parameters and output path
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  %print out what settings are in force
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  disp('**********************************************') 
-  disp('***********Sensitivity testing mode***********')  
-  disp(Sensitivity )
-  if isfield(Sensitivity,'FineGrid'); Sensitivity.FineGrid
-  end
-  disp('**********************************************') 
-  disp('**********************************************')  
-  
-  %first, overwrite the gridding parameters
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  if isfield(Sensitivity,'BlobScale'); Settings.BlobScale = Sensitivity.BlobScale; end
-  if isfield(Sensitivity,'MinSignal'); Settings.MinSignal = Sensitivity.MinSignal; end
-  if isfield(Sensitivity,'MaxPrs');    Settings.MaxPrs    = Sensitivity.MaxPrs;    end
-  
-  if isfield(Sensitivity,'FineGrid')
-    if isfield(Sensitivity.FineGrid,'X');   Settings.FineGrid(1) = Sensitivity.FineGrid.X;   end
-    if isfield(Sensitivity.FineGrid,'Y');   Settings.FineGrid(2) = Sensitivity.FineGrid.Y;   end
-    if isfield(Sensitivity.FineGrid,'Prs'); Settings.FineGrid(3) = Sensitivity.FineGrid.Prs; end    
-  end
-  
-  %then, change the output path
-  %this is required as otherwise it'll overwrite real results
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  if ~isfield(Sensitivity,'NewPath')
-    Error = 3;
-    disp('Sensitivity test output file not set')
-    return;
-  end
- 
-  Settings.OutPath = [Settings.MasterPath,Sensitivity.NewPath]; 
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% now go down to the datapoint level and start sampling
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

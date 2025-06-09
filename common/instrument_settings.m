@@ -66,6 +66,8 @@ else
   InstInfo.limb_regions.FineGrid = [10,0.5,1/80];
   %gnss resolution test
   InstInfo.gnss_htest = InstInfo.limb_regions;
+  %limb, not split into regions
+  InstInfo.limb_merged = InstInfo.limb_regions;
   % ALICE/STRIVE
   InstInfo.alice.FineGrid = [20,2,1/80];
 
