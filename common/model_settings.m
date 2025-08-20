@@ -44,6 +44,11 @@ ModelInfo.era5.FuncName  = 'load_era5';
 ModelInfo.era5.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs';
 ModelInfo.era5_levante.FuncName  = 'load_era5_levante';
 ModelInfo.era5_levante.Arguments = 'ObsGrid,Settings.MaxPrs,Settings.MinPrs';
+ModelInfo.era5scat.FuncName  = 'load_era5_scatteredtest';
+ModelInfo.era5scat.Arguments = 'DayNumber,Settings.MaxPrs,Settings.MinPrs';
+
+
+
 
 %ERA-Interim reanalysis
 ModelInfo.erai.FuncName  = 'load_erai';

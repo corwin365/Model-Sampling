@@ -354,9 +354,10 @@ else
 
 
     %check geolocation arrays are the same size as the data
-    Fields = {'Lon','Lat','Time','Prs'};
+    Fields = {'Lon','Lat','Prs'};
+
     for iF=1:1:numel(Fields)
-      if ~isequal(size(Model.T),size(Model.(Fields{iF}))); 
+      if numel(Model.T(1,:,:,:)) ~= numel(Model.(Fields{iF}))
         Error = 7; 
         return
       end

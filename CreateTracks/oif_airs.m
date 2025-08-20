@@ -27,7 +27,7 @@ Settings.HeightRange = [20,60]; %km
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2020,1,21);%datenum(2007,1,13);%20:1:60);
+Settings.Dates.Geolocation = datenum(2007,1,1);%datenum(2007,1,13);%20:1:60);
 Settings.Dates.Sampling    = Settings.Dates.Geolocation%datenum(2020,1,20:1:60);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
