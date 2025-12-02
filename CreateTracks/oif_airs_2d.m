@@ -2,10 +2,11 @@ clearvars
 addpath(genpath('../'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%produce OIF data for 3D AIRS. No significant changes from previous version,
-%but significantly cleaned up to support any future changes
+%produce OIF data for 2D AIRS. 
+%we can use the geolocation from the 3D files as this is bitwise identical,
+%which helps as I already have the code for it...
 %
-%Corwin Wright, c.wright@bath.ac.uk, 2023/11/07
+%Corwin Wright, c.wright@bath.ac.uk, 2025/12/02
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -13,22 +14,21 @@ addpath(genpath('../'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %path handling
-Settings.Instrument = 'AIRS3D';
+Settings.Instrument = 'AIRS';
 [~,CoreSettings] = sampling_core_v3(' ',' ',0,'GetSettings',true);
 Settings.OutDir  = [CoreSettings.MasterPath,'/tracks/',Settings.Instrument,'/'];
 clear CoreSettings
 
 %geolocation - which data should we include?
-% Settings.LatRange    = [-90,90];
-% Settings.LonRange    = [-180,180];
-Settings.LatRange    = [-90,90];
-Settings.LonRange    = [-180,180];
-Settings.HeightRange = [20,60]; %km
+Settings.LatRange     = [-90,90];
+Settings.LonRange     = [-180,180];
+Settings.Channels     = [1,1,0]; %binary flags for each of 4um, 15um low, 15um high
+Settings.ChannelNames = {'4mu','15mu_high','15mu_low'}; %don't touch this, it's the strings needed for calls to airs_resolution()
 
 %dates to load geolocation from, and dates to sample from. These must line up
 %precisely if both exist. If only one exists, the same dates will be used for both
-Settings.Dates.Geolocation = datenum(2020,1,21);%datenum(2007,1,13);%20:1:60);
-Settings.Dates.Sampling    = Settings.Dates.Geolocation%datenum(2020,1,20:1:60);
+Settings.Dates.Geolocation = datenum(2020,1,20);
+Settings.Dates.Sampling    = Settings.Dates.Geolocation;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% check inputs
@@ -70,8 +70,8 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  k= 0; %just a count for display to the user at the end
-  for iGranule=222:224;%37:39;%1:1:240
+  filecount= 0; %just a count for display to the user at the end
+  for iGranule=1:1:240
     
     OutFile = [Settings.OutDir,'track_',Settings.Instrument,'_',num2str(Settings.Dates.Sampling(iDay)),'_g',sprintf('%03d',iGranule),'.mat'];
     if exist(OutFile,'file');  disp(['Skipping granule ',num2str(iGranule),' - already done']);  continue;end
@@ -97,30 +97,20 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
     clear a c
 
     %extract the fields we need
-    Fields = {'l1_time','l1_lat','l1_lon','ret_z','Source'};
+    Fields = {'l1_time','l1_lat','l1_lon','Source'};
     Data = struct();
     for iF=1:1:numel(Fields); Data.(Fields{iF}) = Airs.(Fields{iF}); end
     clear Airs Fields iF 
 
-    %some ret_zs are bad. Replace them if so
-    if nansum(Data.ret_z,'all') == 0;
-      Data.ret_z = [0	3	6	9	12	15	18	21	24	27	30	33	36	39	42	45	48	51	54	57	60	65	70	75	80	85	90]';
-    end
-
-    %repmat the fields to all match
-    sz = [size(Data.l1_lon),numel(Data.ret_z)];
+    %duplicate out the levels we want
+    sz = [size(Data.l1_lon),3]; %we'll work with all three channels for now, and drop down to just the chosen ones at the end
     Data.l1_lon  = repmat(Data.l1_lon, [1,1,sz(3)]);
     Data.l1_lat  = repmat(Data.l1_lat, [1,1,sz(3)]);   
     Data.l1_time = repmat(Data.l1_time,[1,1,sz(3)]); 
-    Data.ret_z   = repmat(permute(Data.ret_z,[2,3,1]),[sz(1:2),1]);
 
     %create tracking information back to the source data
     Data.SourceProf = reshape(1:1:prod(sz),sz);
     Data.SourceFile = ones(sz);
-    
-
-    %create an approximate pressure field
-    Data.Prs = h2p(Data.ret_z);
 
     %the vertical viewing angle varies by distance off-axis geometrically
     %angle is defined as a/c/w from nadir
@@ -154,7 +144,6 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
     Data.Lat  = Data.l1_lat;  Data = rmfield(Data,'l1_lat');
     Data.Lon  = Data.l1_lon;  Data = rmfield(Data,'l1_lon');
     Data.Time = Data.l1_time; Data = rmfield(Data,'l1_time');
-    Data.Alt  = Data.ret_z;   Data = rmfield(Data,'ret_z');
     Data.OriginalFiles = {Data.Source}; Data = rmfield(Data,'Source');
 
     %and replace geolocation dates with sampled dates
@@ -162,26 +151,19 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
       Data.Time = Data.Time - Settings.Dates.Geolocation(iDay) + Settings.Dates.Sampling(iDay);
     end
 
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %clean up bad data
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    %sometimes the files are missing height scales. If so, stick in the standard one for these data.
-    if sum(Data.Alt(:)) == 0; Data.Alt = repmat(permute([0;3;6;9;12;15;18;21;24;27;30;33;36;39;42;45;48;51;54;57;60;65;70;75;80;85;90],[2,3,1]),[sz(1:2),1]);end
 
     %sometimes the data contain incorrect jumps in time. The granule should all be within a six-minute range
     %by definition, so if the data is more than 15min away from the median then remove and interpolate
     Data.Time(find(abs(Data.Time-median(Data.Time,'all')).*60.*24 > 15)) = NaN; 
     for iLev=1:1:sz(3); Data.Time(:,:,iLev) = inpaint_nans(Data.Time(:,:,iLev)); end; clear iLev
 
-    %discard unwanted heights
-    Data = reduce_struct(Data,inrange(nanmean(Data.Alt,[1,2]),(Settings.HeightRange)),{'OriginalFiles'},3);
-    clear InHeightRange
-
     %remove unphysical error values 
     Bad = find(Data.Lat  <  -90 | Data.Lat  > 90  ...
-             | Data.Lon  < -180 | Data.Lon  > 180 ...
-             | Data.Prs  < 1e-5 | Data.Prs  > 1200);
+             | Data.Lon  < -180 | Data.Lon  > 180);
     Fields = fieldnames(Data);
     for iField=1:1:numel(Fields);
       if strcmpi(Fields{iField},'OriginalFiles'); continue; end
@@ -189,84 +171,82 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
     end;
     clear iField F Bad Fields sz
 
+ 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %specify sensing geometry
+    %specify sensing geometry - horizontal
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     %tell the sampler what kind of data it's getting
     Weight.Format = repmat({'gaussian'},size(Data.Lat));
 
-
     %the  horizontal weighting functions are approximately...
     sz = size(Data.Lat);    
     Weight.X = ones(sz).*13.5./(2.*2.355); %along-LOS. the factor of 2.355converts from FWHM to stdev, the factor of 2 from stdev to the stdev/2 used internally
     Weight.Y = ones(sz).*13.5./(2.*2.355); %across-LOS
+    clear sz
 
-    %vertical comes from the geolocation and whether it's day or night
-    %we'll compute a single day/night profile value for the granule, as this is simpler and it shouldn't vary much,
-    %and then use either the day or night value for each point as appropriate
-    [latmean,~] = meanm(Data.Lat(:),Data.Lon(:));
-    z = squeeze(nanmean(Data.Alt,[1,2]));
-    RDay   = airs_resolution(0,date2doy(Settings.Dates.Geolocation(iDay)),latmean,z,0)./(2.*2.355);
-    RNight = airs_resolution(1,date2doy(Settings.Dates.Geolocation(iDay)),latmean,z,0)./(2.*2.355);
 
-    IsDay = which_airs_retrieval(Data.Lon,Data.Lat,Data.Time,1);
-    Weight.Z = Weight.X.*NaN;
-    Weight.Z(IsDay == 1) = interp1(z,  RDay,Data.Alt(IsDay == 1)); 
-    Weight.Z(IsDay == 0) = interp1(z,RNight,Data.Alt(IsDay == 0));
-    clear latmean z IsDay RDay RNight sz
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %specify sensing geometry - vertical
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-% % % % % %duplicate out data to explore resolution space
-% % % % % DeltaX = 5:-1:-5;
-% % % % % DeltaZ = 0.75:-0.25:-0.75;
-% % % % % 
-% % % % % F = fieldnames(Data);
-% % % % % for iF=1:1:numel(F)
-% % % % %   if ~strcmpi(F{iF},'OriginalFiles')
-% % % % %     Data.(F{iF}) = repmat(Data.(F{iF}),1,1,1,(numel(DeltaX)+numel(DeltaZ)));
-% % % % %   end
-% % % % % end
-% % % % % 
-% % % % % 
-% % % % % F = fieldnames(Weight);
-% % % % % for iF=1:1:numel(F)
-% % % % %   Weight.(F{iF}) = repmat(Weight.(F{iF}),1,1,1,(numel(DeltaX)+numel(DeltaZ)));
-% % % % % end
-% % % % % k = 0;
-% % % % % for iX=1:1:numel(DeltaX)
-% % % % %   k = k+1;
-% % % % %   Weight.X(:,:,:,k) = Weight.X(:,:,:,k) + DeltaX(iX);
-% % % % %   Weight.Y(:,:,:,k) = Weight.X(:,:,:,k) + DeltaX(iX);
-% % % % % end
-% % % % % for iZ=1:1:numel(DeltaZ)
-% % % % %   k = k+1;
-% % % % %   Weight.Z(:,:,:,k) = Weight.Z(:,:,:,k) + DeltaZ(iZ);
-% % % % % end
-% % % % % 
-% % % % % Weight.X(Weight.X <= 0) = NaN;
-% % % % % Weight.Y(Weight.Y <= 0) = NaN;
-% % % % % Weight.Z(Weight.Z <= 0) = NaN;
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-% % % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+    %storage method:
+    %keep each *unique* function
+    %then map to them with NEGATIVE numbers in the weight array
+    %the processing routine will recognise them and translate accordingly
 
+
+    %what profiles do we want, and which points do they represent?
+    DoY = date2doy(floor(nanmean(Data.Time(:)))); % the points will all be on the same day
+    ZScale = 0:0.1:100;                           % set a z scale to work on, in km
+    Chans = NaN(numel(ZScale),20);                % temporary oversize array to store each Zfunc
+    ZFunc = NaN.*Data.Lat;                        % this is where we'll store the ID of each Zfunc for each point
+    P     = ZFunc;                                % this will be the rpessure-height the function is centred on
+
+    %working array to simplify mapping
+    alpha = ones(size(Data.Lat)); alpha(:,:,2) = 2; alpha(:,:,3) = 3;
+    
+    %now fill in all the possible cases
+    k = 0;
+    LatBounds = [-90,-60,-25,25,60,90];% there are from airs_resolution's bin bounds
+    for iChan = 1:1:numel(Settings.Channels)
+      if Settings.Channels(iChan) == 1;
+        for iLatBand=2:1:numel(LatBounds)
+          idx = intersect(inrange(Data.Lat,LatBounds(iLatBand+[-1,0])),find(alpha == iChan));
+          if numel(idx) > 0;
+            %we have data in this band. Get the averaging kernel for it, and flag all relevant points
+            k = k+1; %increment the counter
+            r = airs_resolution([],DoY,mean(LatBounds(iLatBand+[-1,0])),ZScale,2,Settings.ChannelNames{iChan}); %store the kernel
+            r(isnan(r)) = 0; Chans(:,k) = r;
+            ZFunc(idx) = -k; %store the index
+
+            %find the centroid and also store the pressure-height of the centroid level
+            cs = cumsum(Chans(:,k)); half_total = sum(Chans(:,k)) / 2;
+            P(idx) = h2p(ZScale(find(cs >= half_total, 1, 'first')));
+          end
+        end
+      end
+    end
+    clear DoY alpha idx LatBounds r cs half_total
+
+    %remap into the structure needed by the code
+    Weight.ZFuncs.PrsScale = h2p(ZScale); clear ZScale;
+    Weight.ZFuncs.Weights  = Chans(:,1:k)'; clear k Chans
+    Weight.Z               = ZFunc;        clear ZFunc
+    Data.Prs               = P;            clear P
+
+    %finally, drop levels we don't want (we couldn't do this earlier as it
+    %would have made the code crazy-complex to handle)
+    Used = find(Settings.Channels == 1);
+    Weight = reduce_struct(Weight,Used,{'Format','ZFuncs'},3);
+    Data   = reduce_struct(  Data,Used,{'OriginalFiles'},3);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %prepare information needed for reconstruction
     % of the original profiles
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    [Data.x,Data.y,Data.z] = ndgrid(1:1:size(Data.Lat,1),1:1:size(Data.Lat,2),1:1:size(Data.Lat,3)); %grid
-% % % % % [Data.x,Data.y,Data.z,Data.W] = ndgrid(1:1:size(Data.Lat,1),1:1:size(Data.Lat,2),1:1:size(Data.Lat,3),1:1:size(Data.Lat,4)); %grid    
+    [Data.x,Data.y,Data.z] = ndgrid(1:1:size(Data.Lat,1),1:1:size(Data.Lat,2),1:1:size(Data.Lat,3)); %grid 
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %store data
@@ -364,9 +344,9 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
   %save track file
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    save(OutFile,'Track','Recon','Weight');
+  save(OutFile,'Track','Recon','Weight');
   disp('--> Track file written')
-  k = k+1;
+  filecount = filecount+1;
 
   clear Track Recon Weight sz OutFile Store 
 
@@ -376,7 +356,7 @@ for iDay=1:1:numel(Settings.Dates.Geolocation)
 
   %tidy up for next loop
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  disp(['----> ',datestr(Settings.Dates.Geolocation(iDay)),' complete; ',num2str(k),' track files written <----'])
+  disp(['----> ',datestr(Settings.Dates.Geolocation(iDay)),' complete; ',num2str(filecount),' track files written <----'])
 
 
 end; clear iDay

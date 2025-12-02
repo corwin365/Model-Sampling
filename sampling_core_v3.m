@@ -97,7 +97,7 @@ addParameter(p,    'OutPath',                          'NOTSET', @ischar); %outp
 addParameter(p,     'MinSignal',  0.97,        IsPositive);     %fraction of total signal needed to produce final sample
 addParameter(p, 'SpecWeightMin',  1e-3,        IsPositive);     %when using specified weighting function, discard any values contributing less than this times the maximum
 addParameter(p,     'BlobScale',     3,        IsPositive);     %number of standard deviations to compute sensitivity out to (+- from centre)
-addParameter(p,   'MinZContrib',  0.02,        IsNonNegative);  %when rotating, discard vertical levels contributing less fractional weight than this
+addParameter(p,   'MinZContrib',  1e-3,        IsNonNegative);  %when rotating, discard vertical levels contributing less fractional weight than this
 addParameter(p,      'ZPadding',   0.5,        IsPositive);     %when rotating, vertical padding in decades of pressure
 addParameter(p,      'FineGrid',[NaN,NaN,NaN], IsPositive);     %specify point spacing of internal finegrid: [along-LOS km, across-LOS km, vertical decades p]. Overrides defaults set in instrument_settings.m
 
@@ -473,7 +473,6 @@ RunTime.End = datenum(now);
 Settings = rmfield(Settings,'OldData');
 
 %write the output file
-Settings.OutPath
 if Settings.SaveTOnly == false
   save(Settings.OutPath,'Sampled_Data','Settings','RunTime','-v7.3');
 else

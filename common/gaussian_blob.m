@@ -92,7 +92,7 @@
   if Sample.WeightZ >= 0; z = p2h(10.^Fine.Prs); Wz = normpdf(z,p2h(10.^Sample.Prs),Sample.WeightZ);  %simple Gaussian approximation
   else                                           Wz = interp1(p2h(10.^Channel.Prs),Channel.W,p2h(10.^Fine.Prs),'linear','extrap');%not a simple Gaussian - interpolate from supplied information
   end
-
+atop
   %multiply them together to create a 3D blob
   %order of indexing will seem odd if you're unfamiliar with Matlab
   %don't blame me...
